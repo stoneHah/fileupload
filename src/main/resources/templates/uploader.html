@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+
+<!--/* Note the xmlns:* here are completely optional and only meant to     */-->
+<!--/* avoid IDEs from complaining about tags/attributes they may not know */-->
+<html xmlns:th="http://www.thymeleaf.org" xmlns:score="http://thymeleafexamples">
+
+<head>
+    <title>extraThyme: Thymeland's football website</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <script type="application/javascript" src="/static/js/jquery.min.js"></script>
+</head>
+
+<body>
+    <form method="POST" action="/upload" enctype="multipart/form-data">
+        <input type="file" name="file" /><br/><br/>
+        <input type="submit" value="Submit" />
+    </form>
+
+</body>
+
+</html>
