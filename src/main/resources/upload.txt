@@ -1,0 +1,12 @@
+InputStream stream = item.openStream();
+                if (!item.isFormField()) {
+                    /*String filename = item.getName();
+                    parseCompressFile(filename,stream);*/
+                }else{
+                    ByteArrayOutputStream out = new ByteArrayOutputStream();
+                    IOUtils.copy(stream, out);
+
+                    byte[] bytes = out.toByteArray();
+                    String s = new String(bytes, "utf-8");
+                    System.out.println(s);
+                }
