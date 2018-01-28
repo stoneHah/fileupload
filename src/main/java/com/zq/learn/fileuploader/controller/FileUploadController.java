@@ -20,6 +20,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -48,10 +49,19 @@ public class FileUploadController {
             while (iter.hasNext()) {
                 FileItemStream item = iter.next();
                 String name = item.getFieldName();
+                System.out.println("fileName:" + name);
+
                 InputStream stream = item.openStream();
                 if (!item.isFormField()) {
-                    String filename = item.getName();
-                    parseCompressFile(filename,stream);
+                    /*String filename = item.getName();
+                    parseCompressFile(filename,stream);*/
+                }else{
+                    ByteArrayOutputStream out = new ByteArrayOutputStream();
+                    IOUtils.copy(stream, out);
+
+                    byte[] bytes = out.toByteArray();
+                    String s = new String(bytes, "utf-8");
+                    System.out.println(s);
                 }
             }
 
