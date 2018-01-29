@@ -1,4 +1,4 @@
-package com.zq.learn.fileuploader.support.batch;
+package com.zq.learn.fileuploader.support.batch.parser;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

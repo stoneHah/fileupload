@@ -33,6 +33,8 @@ public class ExcelParser implements Parser{
             while ((item = reader.read()) != null) {
                 itemProcessor.process(item);
             }
+
+            itemProcessor.complete();
         } catch (Exception e) {
             e.printStackTrace();
         }

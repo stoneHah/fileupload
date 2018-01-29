@@ -1,4 +1,4 @@
-package com.zq.learn.fileuploader.support.batch;
+package com.zq.learn.fileuploader.support.batch.parser;
 
 import com.zq.learn.fileuploader.support.batch.exception.ParseException;
 import org.apache.poi.ss.formula.functions.T;
@@ -14,7 +14,8 @@ import java.io.InputStream;
  * @create 2018/1/27
  **/
 @Component
-public class ExcelFileStreamParser implements StreamParser<T>{
+public class CsvFileStreamParser implements StreamParser<T>{
+
     @Override
     public ParseResult<T> parse(InputStream inputStream) throws ParseException {
         return null;
@@ -24,7 +25,6 @@ public class ExcelFileStreamParser implements StreamParser<T>{
     public boolean match(Object source) {
         String fileName = String.valueOf(source);
         String extension = StringUtils.getFilenameExtension(fileName);
-        return "xls".equalsIgnoreCase(extension) ||
-                "xlsx".equalsIgnoreCase(extension);
+        return "csv".equalsIgnoreCase(extension);
     }
 }

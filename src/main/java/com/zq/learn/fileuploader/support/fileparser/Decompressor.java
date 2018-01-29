@@ -27,13 +27,13 @@ public class Decompressor {
                     new ZipInputStream(new BufferedInputStream(in, 1024));
             //get the zipped file list entry
             ZipEntry ze = zis.getNextEntry();
-
             while(ze!=null){
                 ByteArrayOutputStream out = new ByteArrayOutputStream((int) ze.getSize());
                 int len;
                 while ((len = zis.read(buffer)) > 0) {
                     out.write(buffer, 0, len);
                 }
+
 
                 //数据处理
                 processor.process(ze.getName(),out.toByteArray());

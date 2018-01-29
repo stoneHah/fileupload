@@ -19,6 +19,8 @@ public class BatchTaskProperties {
 
     private int maxSize;
 
+    private int chunkSize = 2000;
+
 	public int getCoreSize() {
 		return coreSize;
 	}
@@ -33,5 +35,13 @@ public class BatchTaskProperties {
 
 	public void setMaxSize(int maxSize) {
 		this.maxSize = maxSize;
+	}
+
+	public int getChunkSize() {
+		return chunkSize;
+	}
+
+	public void setChunkSize(int chunkSize) {
+		this.chunkSize = chunkSize;
 	}
 }

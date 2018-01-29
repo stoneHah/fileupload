@@ -22,7 +22,7 @@ spring:
       enabled: true #是否开启开发者工具（true/false）
       additional-paths: src/main/java
   datasource:
-        url: jdbc:mysql://127.0.0.1:3306/test?autoReconnect=true&useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull
+        url: jdbc:mysql://127.0.0.1:3306/test?autoReconnect=true&useUnicode=true&characterEncoding=utf8&zeroDateTimeBehavior=convertToNull&rewriteBatchedStatements=true
         username: root
         password: 123456
         filters: log4j,wall,mergeStat
@@ -32,3 +32,4 @@ batch:
   thread:
     coreSize: 3
     maxSize: 8
+  chunkSize: 2000  #批处理块的大小

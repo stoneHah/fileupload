@@ -11,4 +11,6 @@ import org.apache.poi.ss.formula.functions.T;
 @Deprecated
 public interface ItemProcessor<T> {
     void process(T item);
+
+    void complete();
 }

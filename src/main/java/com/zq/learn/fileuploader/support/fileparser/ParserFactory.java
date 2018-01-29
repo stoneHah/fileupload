@@ -1,11 +1,6 @@
 package com.zq.learn.fileuploader.support.fileparser;
 
-import com.zq.learn.fileuploader.support.batch.StreamParser;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-
-import java.util.List;
 
 /**
  * ${DESCRIPTION}

@@ -1,10 +1,7 @@
 package com.zq.learn.fileuploader.support.fileparser;
 
 import au.com.bytecode.opencsv.CSVReader;
-import org.springframework.batch.item.ExecutionContext;
-import org.springframework.batch.item.excel.mapping.PassThroughRowMapper;
-import org.springframework.batch.item.excel.poi.PoiItemReader;
-import org.springframework.core.io.InputStreamResource;
+import org.apache.commons.io.IOUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -34,8 +31,12 @@ public class CsvParser implements Parser{
                     itemProcessor.process(nextLine);
                 }
             }
+
+            itemProcessor.complete();
         } catch (IOException e) {
             e.printStackTrace();
+        }finally {
+            IOUtils.closeQuietly(in);
         }
     }
 }
