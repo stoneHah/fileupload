@@ -26,3 +26,9 @@ spring:
         username: root
         password: 123456
         filters: log4j,wall,mergeStat
+
+#批处理任务的线程数配置
+batch:
+  thread:
+    coreSize: 3
+    maxSize: 8

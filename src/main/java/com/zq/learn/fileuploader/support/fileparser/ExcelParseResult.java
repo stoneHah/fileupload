@@ -8,6 +8,7 @@ import org.springframework.util.MultiValueMap;
  * @author qun.zheng
  * @create 2018/1/26
  **/
+@Deprecated
 public class ExcelParseResult {
     private long successCount;
     private long errorCount;

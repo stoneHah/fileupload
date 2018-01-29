@@ -13,12 +13,12 @@ import java.io.IOException;
  **/
 public class CopyTest {
 
-    private static final String fileName = "F:\\upload\\hello.xlsx";
+    private static final String fileName = "F:\\upload\\csv\\employee.csv";
 
     public static void main(String[] args) {
         File file = new File(fileName);
-        for(int i = 10;i < 1000;i++) {
-            File destFile = new File("F:\\upload\\hello"+(i + 1)+".xlsx");
+        for(int i = 1;i < 2000;i++) {
+            File destFile = new File("F:\\upload\\csv\\employee"+(i + 1)+".csv");
             try {
                 FileUtils.copyFile(file,destFile);
             } catch (IOException e) {

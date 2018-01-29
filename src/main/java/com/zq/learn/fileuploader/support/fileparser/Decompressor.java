@@ -10,6 +10,7 @@ import java.util.zip.ZipInputStream;
  * @author qun.zheng
  * @create 2018/1/26
  **/
+@Deprecated
 public class Decompressor {
 
     /**

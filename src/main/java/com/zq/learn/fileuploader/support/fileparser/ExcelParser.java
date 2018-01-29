@@ -19,8 +19,9 @@ import java.io.InputStream;
  * @author qun.zheng
  * @create 2018/1/26
  **/
-public class ExcelParser {
-    public static void read(InputStream in, ItemProcessor<String[]> itemProcessor) {
+@Deprecated
+public class ExcelParser implements Parser{
+    public void read(InputStream in, ItemProcessor<String[]> itemProcessor) {
         PoiItemReader<String[]> reader = new PoiItemReader<>();
         reader.setLinesToSkip(1);
         reader.setResource(new InputStreamResource(in));
@@ -35,9 +36,5 @@ public class ExcelParser {
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    public static interface ItemProcessor<T>{
-        void process(T item);
     }
 }
