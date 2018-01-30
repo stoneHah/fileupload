@@ -26,7 +26,11 @@ spring:
         username: root
         password: 123456
         filters: log4j,wall,mergeStat
-
+  batch:
+    job:
+      enabled: false
+    initializer:
+      enabled: false
 #批处理任务的线程数配置
 batch:
   thread:

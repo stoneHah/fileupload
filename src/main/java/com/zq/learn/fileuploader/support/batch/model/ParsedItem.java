@@ -2,7 +2,9 @@ package com.zq.learn.fileuploader.support.batch.model;
 
 import org.springframework.util.CollectionUtils;
 
+import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.Map.Entry;
 import java.util.function.BiConsumer;
 
 public class ParsedItem {
@@ -23,6 +25,10 @@ public class ParsedItem {
 
     public void forEach(BiConsumer<String ,String> consumer){
         map.forEach(consumer);
+    }
+
+    public Iterator<Entry<String,String>> iterator(){
+        return map.entrySet().iterator();
     }
 
     @Override
