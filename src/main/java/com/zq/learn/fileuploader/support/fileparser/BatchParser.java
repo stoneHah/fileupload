@@ -136,8 +136,6 @@ public class BatchParser {
                             saveToDb(chunk);
                             chunk = null;
                         }
-
-                        System.gc();
                     }
                 });
             }

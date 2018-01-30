@@ -58,7 +58,7 @@
 			<artifactId>spring-boot-starter-batch</artifactId>
 		</dependency>
 
-		<dependency>
+		<!--<dependency>
 			<groupId>org.springframework.batch</groupId>
 			<artifactId>spring-batch-excel</artifactId>
 			<version>0.5.0-SNAPSHOT</version>
@@ -72,7 +72,7 @@
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi-ooxml</artifactId>
 			<version>3.11</version>
-		</dependency>
+		</dependency>-->
 
 		<dependency>
 			<groupId>net.sf.opencsv</groupId>
@@ -88,6 +88,12 @@
 		<dependency>
 			<groupId>mysql</groupId>
 			<artifactId>mysql-connector-java</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.monitorjbl</groupId>
+			<artifactId>xlsx-streamer</artifactId>
+			<version>1.2.0</version>
 		</dependency>
 
 		<dependency>
