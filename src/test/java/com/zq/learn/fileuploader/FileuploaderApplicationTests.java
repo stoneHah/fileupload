@@ -28,11 +28,12 @@ public class FileuploaderApplicationTests {
 	private JobLauncher jobLauncher;
 
 	@Autowired
-	public JobRepositoryFactoryBean jobInstanceDao;
-
-	@Autowired
 	@Qualifier("importCsvToDbJob")
 	private Job importCsvToDbJob;
+
+	@Autowired
+	@Qualifier("importExcelToDbJob")
+	private Job importExcelToDbJob;
 
 	@Test
 	public void contextLoads() {
@@ -40,13 +41,13 @@ public class FileuploaderApplicationTests {
 	}
 
 	@Test
-	public void testJobInstanceDao(){
-		Assert.assertNotNull(jobInstanceDao);
+	public void runJob() throws Exception {
+		jobLauncher.run(importCsvToDbJob, newExecution("D:\\Documents\\employee.csv","employee"));
 	}
 
 	@Test
-	public void runJob() throws Exception {
-		jobLauncher.run(importCsvToDbJob, newExecution());
+	public void runImportExcelToDbJob() throws Exception {
+		jobLauncher.run(importExcelToDbJob, newExecution("D:\\Documents\\employee.xlsx","employee"));
 	}
 
 	/*@Test
@@ -54,12 +55,12 @@ public class FileuploaderApplicationTests {
 		jobLauncher.run(importEmployeeFromCsvToDbJob, newExecution());
 	}*/
 
-	private JobParameters newExecution() {
+	private JobParameters newExecution(String fileName,String tableName) {
 		Map<String, JobParameter> parameters = new HashMap<>();
 
-		File file = new File("D:\\Documents\\employee.csv");
+		File file = new File(fileName);
 		JobParameter parameter = new JobParameter("file:///" + file.getAbsolutePath());
-		JobParameter tableParam = new JobParameter("employee");
+		JobParameter tableParam = new JobParameter(tableName);
 
 		parameters.put("resource", parameter);
 		parameters.put("tableName", tableParam);

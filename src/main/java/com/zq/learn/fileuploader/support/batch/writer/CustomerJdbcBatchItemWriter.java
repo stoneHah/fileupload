@@ -134,6 +134,7 @@ public class CustomerJdbcBatchItemWriter implements ItemWriter<ParsedItem>,Initi
             }else{
                 StringBuilder sb = new StringBuilder();
                 sb.append("create table " + tableName + "(");
+                sb.append("id int(11) primary key NOT NULL AUTO_INCREMENT,");
                 int fieldLength = columnNames.length;
                 for(int i = 0;i < fieldLength;i++) {
                     sb.append(columnNames[i] + " text CHARACTER SET utf8 DEFAULT NULL");

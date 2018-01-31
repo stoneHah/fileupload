@@ -1,19 +1,18 @@
 package com.zq.learn.fileuploader.support.batch.reader;
 
+import com.zq.learn.fileuploader.support.batch.exception.ExcelFileParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.springframework.batch.item.file.ResourceAwareItemReaderItemStream;
 import org.springframework.batch.item.support.AbstractItemCountingItemStreamItemReader;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.io.Resource;
-import org.springframework.jdbc.core.RowCallbackHandler;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
-import javax.sql.RowSet;
-import javax.sql.rowset.RowSetFactory;
+import java.util.Iterator;
 
 /**
  * ${DESCRIPTION}
@@ -26,24 +25,27 @@ public abstract class AbstractExcelItemReader<T> extends AbstractItemCountingIte
     private Resource resource;
     private int linesToSkip = 0;
     private int currentSheet = 0;
+    private int currentRow = 0;
     private RowMapper<T> rowMapper;
     private RowCallbackHandler skippedRowsCallback;
     private boolean noInput = false;
     private boolean strict = true;
-    private RowSetFactory rowSetFactory = new DefaultRowSetFactory();
-    private RowSet rs;
+
+//    private Iterator<Sheet> sheetIterator;
+    private Iterator<Row> rowIterator;
 
     public AbstractExcelItemReader() {
         this.setName(ClassUtils.getShortName(this.getClass()));
     }
 
     protected T doRead() throws Exception {
-        if (!this.noInput && this.rs != null) {
-            if (this.rs.next()) {
+        if (!this.noInput && this.rowIterator != null) {
+            if (this.rowIterator.hasNext()) {
+                Row row = this.rowIterator.next();
                 try {
-                    return this.rowMapper.mapRow(this.rs);
-                } catch (Exception var2) {
-                    throw new ExcelFileParseException("Exception parsing Excel file.", var2, this.resource.getDescription(), this.rs.getMetaData().getSheetName(), this.rs.getCurrentRowIndex(), this.rs.getCurrentRow());
+                    return this.rowMapper.mapRow(row);
+                } catch (Exception e) {
+                    throw new ExcelFileParseException("Exception parsing Excel file.", e, this.resource.getDescription(), getSheet(currentSheet).getSheetName(), currentRow);
                 }
             } else {
                 ++this.currentSheet;
@@ -91,19 +93,19 @@ public abstract class AbstractExcelItemReader<T> extends AbstractItemCountingIte
 
     private void openSheet() {
         Sheet sheet = this.getSheet(this.currentSheet);
-        this.rs = this.rowSetFactory.create(sheet);
+        this.rowIterator = sheet.rowIterator();
         if (this.logger.isDebugEnabled()) {
-            this.logger.debug("Opening sheet " + sheet.getName() + ".");
+            this.logger.debug("Opening sheet " + sheet.getSheetName() + ".");
         }
 
         for (int i = 0; i < this.linesToSkip; ++i) {
-            if (this.rs.next() && this.skippedRowsCallback != null) {
-                this.skippedRowsCallback.handleRow(this.rs);
+            if (this.rowIterator.hasNext() && this.skippedRowsCallback != null) {
+                this.skippedRowsCallback.handleRow(this.rowIterator.next());
             }
         }
 
         if (this.logger.isDebugEnabled()) {
-            this.logger.debug("Openend sheet " + sheet.getName() + ", with " + sheet.getNumberOfRows() + " rows.");
+            this.logger.debug("Openend sheet " + sheet.getSheetName() + ", with " + sheet.getPhysicalNumberOfRows() + " rows.");
         }
 
     }
@@ -124,7 +126,7 @@ public abstract class AbstractExcelItemReader<T> extends AbstractItemCountingIte
 
     protected abstract int getNumberOfSheets();
 
-    protected abstract void openExcelFile(Resource var1) throws Exception;
+    protected abstract void openExcelFile(Resource resource) throws Exception;
 
     public void setStrict(boolean strict) {
         this.strict = strict;
@@ -132,10 +134,6 @@ public abstract class AbstractExcelItemReader<T> extends AbstractItemCountingIte
 
     public void setRowMapper(RowMapper<T> rowMapper) {
         this.rowMapper = rowMapper;
-    }
-
-    public void setRowSetFactory(RowSetFactory rowSetFactory) {
-        this.rowSetFactory = rowSetFactory;
     }
 
     public void setSkippedRowsCallback(RowCallbackHandler skippedRowsCallback) {
