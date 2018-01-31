@@ -29,6 +29,9 @@ public class FileImportInfo extends Model<FileImportInfo> {
 	private String fileName;
 	@TableField("file_path")
 	private String filePath;
+
+	@TableField("table_name")
+	private String tableName;
     /**
      * 对应spring batch的job instance id
      */
@@ -102,6 +105,14 @@ public class FileImportInfo extends Model<FileImportInfo> {
 
 	public void setUpdateTime(Date updateTime) {
 		this.updateTime = updateTime;
+	}
+
+	public String getTableName() {
+		return tableName;
+	}
+
+	public void setTableName(String tableName) {
+		this.tableName = tableName;
 	}
 
 	@Override

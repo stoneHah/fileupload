@@ -7,6 +7,7 @@
 		<id column="id" property="id" />
 		<result column="file_name" property="fileName" />
 		<result column="file_path" property="filePath" />
+		<result column="table_name" property="tableName" />
 		<result column="job_instance_id" property="jobInstanceId" />
 		<result column="file_key" property="fileKey" />
 		<result column="upload_key" property="uploadKey" />

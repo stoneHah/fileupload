@@ -101,7 +101,7 @@ public class BatchConfiguration {
 
     @Bean
     public Job importCsvToDbJob(JobCompletionNotificationListener listener) {
-        return jobBuilderFactory.get("importCsvToDbJob5")
+        return jobBuilderFactory.get("importCsvToDbJob")
                 .incrementer(new RunIdIncrementer())
                 .listener(listener)
                 .flow(importCsvToDbStep())
