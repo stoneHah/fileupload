@@ -1,24 +1,24 @@
 package com.zq.learn.fileuploader;
 
-import org.junit.Assert;
+import com.zq.learn.fileuploader.support.batch.Keys;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.batch.core.Job;
-import org.springframework.batch.core.JobParameter;
-import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.*;
 import org.springframework.batch.core.launch.JobLauncher;
-import org.springframework.batch.core.repository.dao.JobInstanceDao;
-import org.springframework.batch.core.repository.support.JobRepositoryFactoryBean;
+import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.item.ExecutionContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.core.io.UrlResource;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.File;
-import java.net.MalformedURLException;
+import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.*;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -35,6 +35,16 @@ public class FileuploaderApplicationTests {
 	@Qualifier("importExcelToDbJob")
 	private Job importExcelToDbJob;
 
+	@Autowired
+	private JobRepository jobRepository;
+
+	private ScheduledThreadPoolExecutor scheduler;
+
+	@Before
+	public void setup() {
+		scheduler = new ScheduledThreadPoolExecutor(8);
+	}
+
 	@Test
 	public void contextLoads() {
 
@@ -47,7 +57,36 @@ public class FileuploaderApplicationTests {
 
 	@Test
 	public void runImportExcelToDbJob() throws Exception {
-		jobLauncher.run(importExcelToDbJob, newExecution("D:\\Documents\\employee.xlsx","employee"));
+		CountDownLatch doneSignal = new CountDownLatch(1);
+		JobExecution jobExecution = jobLauncher.run(importExcelToDbJob, newExecution("D:\\Documents\\employee.xlsx", "employee"));
+
+		scheduler.scheduleAtFixedRate(new Runnable() {
+			private StepExecution stepExecution;
+			@Override
+			public void run() {
+				Collection<StepExecution> stepExecutions = jobExecution.getStepExecutions();
+				if (stepExecutions.isEmpty()) {
+					System.out.println("job还未启动");
+					return;
+				}
+
+				if (jobExecution.getEndTime() != null) {
+					doneSignal.countDown();
+					return;
+				}
+
+				if (stepExecution == null) {
+					stepExecution = stepExecutions.iterator().next();
+				}
+				ExecutionContext executionContext = stepExecution.getExecutionContext();
+				if(executionContext.containsKey(Keys.READ_MAX)){
+					int maxItems = executionContext.getInt(Keys.READ_MAX);
+					System.out.println("当前读取的数量:" + stepExecution.getReadCount() + "最大可读取的数量:" + maxItems);
+				}
+			}
+		}, 1, 1, TimeUnit.SECONDS);
+
+		doneSignal.await();
 	}
 
 	/*@Test
@@ -61,9 +100,11 @@ public class FileuploaderApplicationTests {
 		File file = new File(fileName);
 		JobParameter parameter = new JobParameter("file:///" + file.getAbsolutePath());
 		JobParameter tableParam = new JobParameter(tableName);
+		JobParameter dateParam = new JobParameter(new Date());
 
 		parameters.put("resource", parameter);
 		parameters.put("tableName", tableParam);
+		parameters.put("date", dateParam);
 
 		return new JobParameters(parameters);
 	}

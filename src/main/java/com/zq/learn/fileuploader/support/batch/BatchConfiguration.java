@@ -1,5 +1,7 @@
-package com.zq.learn.fileuploader.support.batch.config;
+package com.zq.learn.fileuploader.support.batch;
 
+import com.alibaba.druid.util.DaemonThreadFactory;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.zq.learn.fileuploader.support.batch.listener.JobCompletionNotificationListener;
 import com.zq.learn.fileuploader.support.batch.model.ParsedItem;
 import com.zq.learn.fileuploader.support.batch.reader.ParsedItemReader;
@@ -14,7 +16,10 @@ import org.springframework.batch.core.configuration.annotation.EnableBatchProces
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
+import org.springframework.batch.core.launch.support.SimpleJobLauncher;
+import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.repository.dao.JobInstanceDao;
 import org.springframework.batch.item.database.JdbcBatchItemWriter;
 import org.springframework.batch.item.file.FlatFileItemReader;
@@ -24,6 +29,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
+import org.springframework.core.task.SimpleAsyncTaskExecutor;
 
 import javax.sql.DataSource;
 import java.util.ArrayList;
@@ -40,7 +46,22 @@ public class BatchConfiguration {
     public StepBuilderFactory stepBuilderFactory;
 
     @Autowired
+    public JobRepository jobRepository;
+
+    @Autowired
     public DataSource dataSource;
+
+    @Bean
+    public JobLauncher jobLauncher() {
+        final SimpleJobLauncher jobLauncher = new SimpleJobLauncher();
+        jobLauncher.setJobRepository(jobRepository);
+        final SimpleAsyncTaskExecutor simpleAsyncTaskExecutor = new SimpleAsyncTaskExecutor(new ThreadFactoryBuilder()
+                .setNameFormat("job-task-executor-service")
+                .setDaemon(true)
+                .build());
+        jobLauncher.setTaskExecutor(simpleAsyncTaskExecutor);
+        return jobLauncher;
+    }
 
     @Bean
     @StepScope

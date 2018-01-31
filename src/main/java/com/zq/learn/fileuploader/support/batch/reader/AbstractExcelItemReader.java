@@ -122,6 +122,10 @@ public abstract class AbstractExcelItemReader<T> extends AbstractItemCountingIte
         this.linesToSkip = linesToSkip;
     }
 
+    public int getLinesToSkip() {
+        return linesToSkip;
+    }
+
     protected abstract Sheet getSheet(int var1);
 
     protected abstract int getNumberOfSheets();
