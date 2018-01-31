@@ -46,7 +46,7 @@ public class FileUploadController {
     @RequestMapping(value = "/upload",method = RequestMethod.POST)
     public String upload(
             HttpServletRequest request,
-                                   RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes) {
         try {
             // Create a new file upload handler
             ServletFileUpload upload = new ServletFileUpload();
@@ -62,7 +62,6 @@ public class FileUploadController {
                     if (!item.isFormField()) {
                         String filename = item.getName();
 
-                        System.out.println("表名:" + tableName);
                         //处理文件流
                         dealWithFileStream(tableName,filename,stream);
                     }else{
