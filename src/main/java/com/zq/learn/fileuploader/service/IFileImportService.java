@@ -1,5 +1,12 @@
 package com.zq.learn.fileuploader.service;
 
+import com.baomidou.mybatisplus.annotations.TableField;
+import com.zq.learn.fileuploader.controller.dto.Response;
+import com.zq.learn.fileuploader.controller.dto.Response.ResponseBuilder;
+import com.zq.learn.fileuploader.exception.FileImportException;
+import com.zq.learn.fileuploader.persistence.model.FileImportInfo;
+import org.apache.poi.ss.formula.functions.T;
+
 import java.io.InputStream;
 import java.util.Map;
 
@@ -19,7 +26,7 @@ public interface IFileImportService {
      * @param inputStream
      * @return 文件Key
      */
-    String importFile(String groupKey,String tableName, String fileName, InputStream inputStream);
+    String importFile(String groupKey,String tableName, String fileName, InputStream inputStream) throws FileImportException;
 
     /**
      * 获取文件处理结果信息
@@ -65,6 +72,61 @@ public interface IFileImportService {
 
         public void setSkipCount(Integer skipCount) {
             this.skipCount = skipCount;
+        }
+    }
+
+    public static class FileImportInfoBuilder{
+        private String fileName;
+        private String filePath;
+
+        private String tableName;
+        private Long jobInstanceId;
+        private String fileKey;
+        private String uploadKey;
+
+        public FileImportInfoBuilder() {
+        }
+
+        public FileImportInfoBuilder fileName(String fileName) {
+            this.fileName = fileName;
+            return this;
+        }
+
+        public FileImportInfoBuilder filePath(String filePath) {
+            this.filePath = filePath;
+            return this;
+        }
+
+        public FileImportInfoBuilder tableName(String tableName) {
+            this.tableName = tableName;
+            return this;
+        }
+
+        public FileImportInfoBuilder jobInstanceId(Long jobInstanceId) {
+            this.jobInstanceId = jobInstanceId;
+            return this;
+        }
+
+        public FileImportInfoBuilder fileKey(String fileKey) {
+            this.fileKey = fileKey;
+            return this;
+        }
+
+        public FileImportInfoBuilder uploadKey(String uploadKey) {
+            this.uploadKey = uploadKey;
+            return this;
+        }
+
+        public FileImportInfo build() {
+            FileImportInfo fileImportInfo = new FileImportInfo();
+            fileImportInfo.setFileName(fileName);
+            fileImportInfo.setFilePath(filePath);
+            fileImportInfo.setTableName(tableName);
+            fileImportInfo.setJobInstanceId(jobInstanceId);
+            fileImportInfo.setFileKey(fileKey);
+            fileImportInfo.setUploadKey(uploadKey);
+
+            return fileImportInfo;
         }
     }
 

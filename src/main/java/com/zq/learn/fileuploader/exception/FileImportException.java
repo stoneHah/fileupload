@@ -6,7 +6,7 @@ package com.zq.learn.fileuploader.exception;
  * @author qun.zheng
  * @create 2018/1/31
  **/
-public class FileImportException extends RuntimeException {
+public class FileImportException extends Exception {
 
     public FileImportException(String message) {
         super(message);

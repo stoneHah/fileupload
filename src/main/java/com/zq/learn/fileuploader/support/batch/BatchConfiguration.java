@@ -64,6 +64,11 @@ public class BatchConfiguration {
     }
 
     @Bean
+    public JobFactory jobFactory(List<Job> jobs){
+        return new JobFactory(jobs);
+    }
+
+    @Bean
     @StepScope
     public FlatFileItemReader<ParsedItem> csvItemReader(@Value("#{jobParameters['resource']}") Resource resource) {
         return new ParsedItemReader(resource);
@@ -101,7 +106,7 @@ public class BatchConfiguration {
 
     @Bean
     public Job importCsvToDbJob(JobCompletionNotificationListener listener) {
-        return jobBuilderFactory.get("importCsvToDbJob")
+        return jobBuilderFactory.get(JobNameFactory.JOB_CSV_TO_DB)
                 .incrementer(new RunIdIncrementer())
                 .listener(listener)
                 .flow(importCsvToDbStep())
@@ -111,7 +116,7 @@ public class BatchConfiguration {
 
     @Bean
     public Step importCsvToDbStep() {
-        return stepBuilderFactory.get("importCsvToDbStep")
+        return stepBuilderFactory.get(JobNameFactory.STEP_CSV_TO_DB)
                 .<ParsedItem, ParsedItem> chunk(3000)
                 .reader(csvItemReader(null))
 //                .processor(processor())
@@ -121,7 +126,7 @@ public class BatchConfiguration {
 
     @Bean
     public Job importExcelToDbJob(JobCompletionNotificationListener listener) {
-        return jobBuilderFactory.get("importExcelToDbJob")
+        return jobBuilderFactory.get(JobNameFactory.JOB_EXCEL_TO_DB)
                 .incrementer(new RunIdIncrementer())
                 .listener(listener)
                 .flow(importExcelToDbStep())
@@ -131,7 +136,7 @@ public class BatchConfiguration {
 
     @Bean
     public Step importExcelToDbStep() {
-        return stepBuilderFactory.get("importExcelToDbStep")
+        return stepBuilderFactory.get(JobNameFactory.STEP_EXCEL_TO_DB)
                 .<ParsedItem, ParsedItem> chunk(3000)
                 .reader(excelItemReader(null))
 //                .processor(processor())

@@ -1,9 +1,13 @@
 package com.zq.learn.fileuploader.controller;
 
 import com.sun.javafx.scene.control.skin.VirtualFlow.ArrayLinkedList;
+import com.zq.learn.fileuploader.controller.dto.Response;
+import com.zq.learn.fileuploader.exception.FileImportException;
+import com.zq.learn.fileuploader.service.IFileImportService;
 import com.zq.learn.fileuploader.support.fileparser.BatchParser;
 import com.zq.learn.fileuploader.support.fileparser.BatchParser.FileData;
 import com.zq.learn.fileuploader.support.fileparser.Decompressor;
+import com.zq.learn.fileuploader.utils.IdGenerator;
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
@@ -25,10 +29,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * ${DESCRIPTION}
@@ -41,13 +42,16 @@ import java.util.Map;
 public class FileUploadController {
 
     @Autowired
-    private BatchParser batchParser;
+    private IFileImportService fileImportService;
 
     @RequestMapping(value = "/upload",method = RequestMethod.POST)
     public String upload(
             HttpServletRequest request,
             RedirectAttributes redirectAttributes) {
         try {
+            Map<String, String> fileNameKeyMap = new HashMap<>();
+            Map<String, String> fileNameErrorMap = new HashMap<>();
+            String groupKey = IdGenerator.getId();
             // Create a new file upload handler
             ServletFileUpload upload = new ServletFileUpload();
 
@@ -62,80 +66,40 @@ public class FileUploadController {
                     if (!item.isFormField()) {
                         String filename = item.getName();
 
-                        //处理文件流
-                        dealWithFileStream(tableName,filename,stream);
+                        //导入文件
+                        String fileKey = null;
+                        try {
+                            fileKey = fileImportService.importFile(groupKey, tableName, filename, stream);
+                            fileNameKeyMap.put(filename, fileKey);
+                        } catch (FileImportException e) {
+                            fileNameErrorMap.put(filename, e.getMessage());
+                            e.printStackTrace();
+                        }
                     }else{
                         String fieldName = item.getFieldName();
                         if ("table".equals(fieldName)) {
                             tableName = Streams.asString(stream);
                         }
                     }
-                } finally {
+                }  finally {
                     IOUtils.closeQuietly(stream);
                 }
             }
 
-            redirectAttributes.addFlashAttribute("message",
-                    "You successfully uploaded '" );
+            Map<String, Map> finalMap = new HashMap<>();
+            finalMap.put("normal", fileNameKeyMap);
+            finalMap.put("exception", fileNameErrorMap);
+            redirectAttributes.addFlashAttribute("res",
+                    Response.ok(finalMap));
         } catch (FileUploadException e) {
-            redirectAttributes.addFlashAttribute("message",
-                    " uploaded error'" );
+            redirectAttributes.addFlashAttribute("res",
+                    Response.error(Response.CODE_ERROR,"文件上传失败"));
         } catch (IOException e) {
-            redirectAttributes.addFlashAttribute("message",
-                    " uploaded error'" );
+            redirectAttributes.addFlashAttribute("res",
+                    Response.error(Response.CODE_ERROR,"文件上传失败"));
         }
 
         return "redirect:/uploadStatus";
-    }
-
-    private String parseFieldValue(InputStream inputStream) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        try {
-            IOUtils.copy(inputStream, out);
-            return new String(out.toByteArray(), "utf-8");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        return null;
-    }
-
-    /**
-     * 处理文件流
-     * @param filename
-     * @param stream
-     */
-    private void dealWithFileStream(String tableName,String filename, InputStream stream) throws FileUploadException {
-        if (isExcel(filename) || isCsv(filename)) {
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            try {
-                IOUtils.copy(stream, out);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }finally {
-                IOUtils.closeQuietly(out);
-            }
-            batchParser.parse(new FileData(tableName,filename,filename,new ByteArrayInputStream(out.toByteArray())));
-        } else if (isCompressFile(filename)) {
-            parseCompressFile(tableName,filename,stream);
-        }else{
-            throw new FileUploadException("不支持的文件类型");
-        }
-    }
-
-    /**
-     * 解析压缩文件
-     * @param stream
-     */
-    private void parseCompressFile(String tableName,String compressFilename, InputStream stream) {
-        // Process the input stream
-        Decompressor.unZip(stream, (fileName, bytes) -> {
-            System.out.println("parse file" + fileName);
-            if (isExcel(fileName) || isCsv(fileName)) {
-                batchParser.parse(new FileData(tableName,compressFilename,fileName,new ByteArrayInputStream(bytes)));
-            }
-//            ExcelParser.read(new ByteArrayInputStream(bytes), item -> System.out.println(JSON.toJSONString(item)));
-        });
     }
 
     @RequestMapping(value ="",method = RequestMethod.GET)
@@ -148,19 +112,4 @@ public class FileUploadController {
         return "uploadStatus";
     }
 
-    private boolean isCompressFile(String filename) {
-        String extension = StringUtils.getFilenameExtension(filename);
-        return "zip".equalsIgnoreCase(extension);
-    }
-
-    private boolean isCsv(String filename) {
-        String extension = StringUtils.getFilenameExtension(filename);
-        return "csv".equalsIgnoreCase(extension);
-    }
-
-    private boolean isExcel(String filename) {
-        String extension = StringUtils.getFilenameExtension(filename);
-        return "xls".equalsIgnoreCase(extension) ||
-                "xlsx".equalsIgnoreCase(extension);
-    }
 }

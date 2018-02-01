@@ -9,6 +9,7 @@ public class Response<T> {
      * 请求接口正常返回
      */
     public static final String CODE_OK = "OK";
+    public static final String CODE_ERROR = "ERROR";
 
     /**
      * 参数错误

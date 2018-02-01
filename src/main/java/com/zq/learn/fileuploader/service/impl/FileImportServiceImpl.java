@@ -1,8 +1,12 @@
 package com.zq.learn.fileuploader.service.impl;
 
+import com.zq.learn.fileuploader.common.enums.FileExtension;
 import com.zq.learn.fileuploader.exception.FileImportException;
 import com.zq.learn.fileuploader.persistence.dao.FileImportInfoMapper;
+import com.zq.learn.fileuploader.persistence.model.FileImportInfo;
 import com.zq.learn.fileuploader.service.IFileImportService;
+import com.zq.learn.fileuploader.support.batch.JobFactory;
+import com.zq.learn.fileuploader.support.batch.JobNameFactory;
 import com.zq.learn.fileuploader.utils.IdGenerator;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.ArrayUtils;
@@ -12,7 +16,6 @@ import org.springframework.batch.core.JobParameter;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -33,9 +36,10 @@ import java.util.concurrent.ConcurrentHashMap;
  **/
 @Service
 public class FileImportServiceImpl implements IFileImportService {
-    private static final String TEMP_PATH  = System.getProperty("java.io.tmpdir");
+    private static final String PARENT_DIR  = "youedata" + File.separator + "fileupload";
+    private static final String TEMP_PATH  = System.getProperty("java.io.tmpdir") + PARENT_DIR;
     private static final char EXTENSION_SEPARATOR = '.';
-    private static final String[] supportExtension = new String[]{"xls","xlsx","csv"};
+    private static final FileExtension[] supportExtension = new FileExtension[]{FileExtension.CSV,FileExtension.EXCEL};
 
     private static final ConcurrentHashMap<String, JobExecution> jobExecutionMap = new ConcurrentHashMap<>();
 
@@ -46,15 +50,10 @@ public class FileImportServiceImpl implements IFileImportService {
     private JobLauncher jobLauncher;
 
     @Autowired
-    @Qualifier("importCsvToDbJob")
-    private Job importCsvToDbJob;
-
-    @Autowired
-    @Qualifier("importExcelToDbJob")
-    private Job importExcelToDbJob;
+    private JobFactory jobFactory;
 
     @Override
-    public String importFile(String groupKey,String tableName, String fileName, InputStream inputStream) {
+    public String importFile(String groupKey,String tableName, String fileName, InputStream inputStream) throws FileImportException {
         assertFileSupport(fileName);
 
         String fileKey = IdGenerator.getId();
@@ -65,16 +64,32 @@ public class FileImportServiceImpl implements IFileImportService {
             String fullPath = saveFile(savedFileName, inputStream);
             Long jobInstanceId = runImportJob(tableName,fileKey,fullPath);
 
-//            saveImportInfo();
+            saveImportInfo(new FileImportInfoBuilder()
+                    .fileKey(fileKey)
+                    .fileName(fileName)
+                    .filePath(fullPath)
+                    .jobInstanceId(jobInstanceId)
+                    .tableName(tableName)
+                    .uploadKey(groupKey)
+                    .build());
         } catch (IOException e) {
             throw new FileImportException(e.getMessage(),e);
         }
         return fileKey;
     }
 
-    private void assertFileSupport(String fileName) {
+    /**
+     * 保存导入信息
+     * @param fileImportInfo
+     */
+    private void saveImportInfo(FileImportInfo fileImportInfo) {
+        fileImportInfoMapper.insert(fileImportInfo);
+    }
+
+    private void assertFileSupport(String fileName) throws FileImportException {
         String extension = StringUtils.getFilenameExtension(fileName);
-        if(!ArrayUtils.contains(supportExtension, extension)){
+        FileExtension fileExtension = FileExtension.getBy(extension);
+        if(!ArrayUtils.contains(supportExtension, fileExtension)){
             throw new FileImportException(String.format("不支持的文件类型(%s),暂时仅支持 %s", extension, Arrays.toString(supportExtension)));
         }
     }
@@ -87,13 +102,13 @@ public class FileImportServiceImpl implements IFileImportService {
      * @throws IOException
      */
     private String saveFile(String fileName, InputStream inputStream) throws IOException {
-        String destPath = TEMP_PATH + File.pathSeparator + fileName;
+        String destPath = TEMP_PATH + File.separator + fileName;
         FileUtils.copyInputStreamToFile(inputStream,new File(destPath));
 
         return destPath;
     }
 
-    private Long runImportJob(String tableName, String fileKey, String fullPath) {
+    private Long runImportJob(String tableName, String fileKey, String fullPath) throws FileImportException {
         Map<String, JobParameter> parameters = new HashMap<>();
 
         JobParameter parameter = new JobParameter("file:///" + fullPath);
@@ -123,12 +138,12 @@ public class FileImportServiceImpl implements IFileImportService {
     }
 
     private Job getJob(String extension) {
-        if ("xls".equals(extension) || "xlsx".equals(extension)) {
-            return importExcelToDbJob;
-        } else if ("csv".equals(extension)) {
-            return importCsvToDbJob;
+        FileExtension fileExtension = FileExtension.getBy(extension);
+        if (fileExtension == null) {
+            return null;
         }
-        return null;
+
+        return jobFactory.getJob(JobNameFactory.getJobName(fileExtension));
     }
 
     @Override
@@ -137,6 +152,6 @@ public class FileImportServiceImpl implements IFileImportService {
     }
 
     public static void main(String[] args) {
-        System.out.println( File.separator);
+        System.out.println(File.separator);
     }
 }

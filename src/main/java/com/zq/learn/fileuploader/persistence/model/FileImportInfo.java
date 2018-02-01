@@ -36,7 +36,7 @@ public class FileImportInfo extends Model<FileImportInfo> {
      * 对应spring batch的job instance id
      */
 	@TableField("job_instance_id")
-	private Integer jobInstanceId;
+	private Long jobInstanceId;
     /**
      * 文件id
      */
@@ -75,11 +75,11 @@ public class FileImportInfo extends Model<FileImportInfo> {
 		this.filePath = filePath;
 	}
 
-	public Integer getJobInstanceId() {
+	public Long getJobInstanceId() {
 		return jobInstanceId;
 	}
 
-	public void setJobInstanceId(Integer jobInstanceId) {
+	public void setJobInstanceId(Long jobInstanceId) {
 		this.jobInstanceId = jobInstanceId;
 	}
 
