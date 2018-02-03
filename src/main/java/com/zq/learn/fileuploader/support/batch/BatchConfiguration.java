@@ -32,6 +32,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 
 import javax.sql.DataSource;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -119,6 +120,7 @@ public class BatchConfiguration {
         return stepBuilderFactory.get(JobNameFactory.STEP_CSV_TO_DB)
                 .<ParsedItem, ParsedItem> chunk(3000)
                 .reader(csvItemReader(null))
+//                .listener()
 //                .processor(processor())
                 .writer(writer(null))
                 .build();
@@ -141,6 +143,9 @@ public class BatchConfiguration {
                 .reader(excelItemReader(null))
 //                .processor(processor())
                 .writer(writer(null))
+                .faultTolerant()
+                .skip(SQLException.class)
+                .noRetry(SQLException.class)
                 .build();
     }
 

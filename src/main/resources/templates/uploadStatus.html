@@ -1,12 +1,100 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <link href="/static/css/bootstrap.min.css"
+          rel="stylesheet" type="text/css" />
+    <link href="/static/css/font-awesome.min.css"
+          rel="stylesheet" type="text/css" />
+</head>
 <body>
 
 <h1>文件上传结果</h1>
 
-<div th:if="${res.code == }">
-    <h2 th:text="${message}"/>
+<div th:if="${res.code == 'OK'}">
+    <input id="group" th:value="${res.result.group}" hidden="hidden"/>
+    <ul id="normal">
+        <li th:each="entry : ${res.result.normalFiles}">
+            <div th:id="${entry.value}">
+                <label th:text="${'文件(' + entry.key + ')'}">文件名:</label>
+                <div style="margin-left: 30px;">
+                    <label>上传进度-</label>
+                    <label>读取记录数:<span role="curRecord">*</span></label>
+                    <label>写入录数:<span role="writeCount">*</span></label>
+                    <span role="status" style="margin-left: 5px;">
+                        <img style="width: 15px;" src="/static/images/loading.gif" alt="加载中" />
+                    </span>
+                </div>
+            </div>
+        </li>
+    </ul>
+    <div id="summary" style="display: none;">文件上传总耗时:<span id="totalConsume"></span></div>
 </div>
 
+<script type="application/javascript" src="/static/js/jquery.min.js"></script>
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    $(function(){
+        queryUploadProgress($('#group').val());
+
+        function queryUploadProgress(groupKey){
+            $.get("/uploadProgress/" + groupKey,function(data){
+                var complete = false;
+                if(data) {
+                    if(data.status == 'COMPLETED'){
+                        complete = true;
+                    }
+                    var filesProcessResult = data.filesProcessResult;
+                    dealProcessResult(filesProcessResult);
+                }
+
+                if(!complete){
+                    window.setTimeout(function(){
+                        queryUploadProgress(groupKey);
+                    },1000);
+                }else{
+                    $('#summary').show();
+                    $('#totalConsume').text(parseMill(data.timeConsume));
+                }
+            });
+        }
+    });
+
+    function dealProcessResult(filesProcessResult){
+        for(var fileKey in filesProcessResult){
+            var $fileInfo = $('#' + fileKey);
+            var fileProcess = filesProcessResult[fileKey];
+
+            if(fileProcess.readCount != null){
+                $fileInfo.find('[role="curRecord"]').text(fileProcess.readCount);
+            }
+
+            if(fileProcess.writeCount != null){
+                $fileInfo.find('[role="writeCount"]').text(fileProcess.writeCount);
+            }
+
+            if(fileProcess.status == 'COMPLETED'){
+                $fileInfo.find('[role="status"]').html('<span class="glyphicon glyphicon-ok" aria-hidden="true" style="color: #286090"></span>');
+            }
+        }
+    }
+
+    function parseMill(mill){
+
+         if(!mill){
+             return '-';
+         }
+
+         if(mill < 1000){
+             return mill + '毫秒';
+         }else if(mill < 60 * 1000){
+             return mill / 1000 + '秒';
+         }else if(mill < 3600 * 1000){
+             return mill / (60 * 1000) + '分钟';
+         }else{
+             return mill / (3600 * 1000) + '小时'
+         }
+    }
+    /*]]>*/
+</script>
 </body>
 </html>

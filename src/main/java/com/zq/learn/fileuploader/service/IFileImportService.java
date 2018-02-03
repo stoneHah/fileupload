@@ -6,6 +6,7 @@ import com.zq.learn.fileuploader.controller.dto.Response.ResponseBuilder;
 import com.zq.learn.fileuploader.exception.FileImportException;
 import com.zq.learn.fileuploader.persistence.model.FileImportInfo;
 import org.apache.poi.ss.formula.functions.T;
+import org.springframework.batch.core.BatchStatus;
 
 import java.io.InputStream;
 import java.util.Map;
@@ -33,22 +34,53 @@ public interface IFileImportService {
      * @param groupKey
      * @return
      */
-    Map<String,FileProcessResult> getFilesProcessResult(String groupKey);
+    GroupFileProcessResult getFilesProcessResult(String groupKey);
+
+    public static class GroupFileProcessResult{
+        public static final GroupFileProcessResult EMPTY = new GroupFileProcessResult();
+
+        private BatchStatus status = BatchStatus.STARTING;
+        private Long timeConsume = null;
+        private Map<String,FileProcessResult> filesProcessResult;
+
+        public BatchStatus getStatus() {
+            return status;
+        }
+
+        public void setStatus(BatchStatus status) {
+            this.status = status;
+        }
+
+        public Map<String, FileProcessResult> getFilesProcessResult() {
+            return filesProcessResult;
+        }
+
+        public void setFilesProcessResult(Map<String, FileProcessResult> filesProcessResult) {
+            this.filesProcessResult = filesProcessResult;
+        }
+
+        public Long getTimeConsume() {
+            return timeConsume;
+        }
+
+        public void setTimeConsume(Long timeConsume) {
+            this.timeConsume = timeConsume;
+        }
+    }
 
     /**
      * 文件处理 进程信息
      */
     public static class FileProcessResult{
 
-        public static enum Status{
-            PREPARE,STARTED,COMPLETED, FAILED,
-        }
+        public static final FileProcessResult EMPTY = new FileProcessResult();
 
-        private Status status = Status.PREPARE;
+        private BatchStatus status = BatchStatus.STARTING;
 
         private Integer readCount;
-        private Integer totalCount;
-        private Integer skipCount;
+        private Integer writeCount;
+        private String errorMsg;
+        private Long timeConsume = null;
 
         public Integer getReadCount() {
             return readCount;
@@ -58,20 +90,36 @@ public interface IFileImportService {
             this.readCount = readCount;
         }
 
-        public Integer getTotalCount() {
-            return totalCount;
+        public Integer getWriteCount() {
+            return writeCount;
         }
 
-        public void setTotalCount(Integer totalCount) {
-            this.totalCount = totalCount;
+        public void setWriteCount(Integer writeCount) {
+            this.writeCount = writeCount;
         }
 
-        public Integer getSkipCount() {
-            return skipCount;
+        public BatchStatus getStatus() {
+            return status;
         }
 
-        public void setSkipCount(Integer skipCount) {
-            this.skipCount = skipCount;
+        public void setStatus(BatchStatus status) {
+            this.status = status;
+        }
+
+        public Long getTimeConsume() {
+            return timeConsume;
+        }
+
+        public void setTimeConsume(Long timeConsume) {
+            this.timeConsume = timeConsume;
+        }
+
+        public String getErrorMsg() {
+            return errorMsg;
+        }
+
+        public void setErrorMsg(String errorMsg) {
+            this.errorMsg = errorMsg;
         }
     }
 

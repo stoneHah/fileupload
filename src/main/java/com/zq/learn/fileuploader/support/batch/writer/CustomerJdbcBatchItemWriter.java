@@ -86,6 +86,11 @@ public class CustomerJdbcBatchItemWriter implements ItemWriter<ParsedItem>,Initi
         if (CollectionUtils.isEmpty(items)) {
             return;
         }
+
+//        if (Math.random() < 0.2) {
+//            throw new SQLException("sql error");
+//        }
+
         parseSql(getColumnNames(items.get(0)));
         delegate.write(items);
     }

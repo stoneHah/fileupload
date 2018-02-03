@@ -3,6 +3,7 @@ package com.zq.learn.fileuploader.support.batch.reader;
 import com.zq.learn.fileuploader.support.batch.exception.ExcelFileParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.springframework.batch.item.file.ResourceAwareItemReaderItemStream;
@@ -40,14 +41,18 @@ public abstract class AbstractExcelItemReader<T> extends AbstractItemCountingIte
 
     protected T doRead() throws Exception {
         if (!this.noInput && this.rowIterator != null) {
+            Row row = null;
             if (this.rowIterator.hasNext()) {
-                Row row = this.rowIterator.next();
+                row = this.rowIterator.next();
+            }
+
+            if(!isRowBlank(row)){
                 try {
                     return this.rowMapper.mapRow(row);
                 } catch (Exception e) {
                     throw new ExcelFileParseException("Exception parsing Excel file.", e, this.resource.getDescription(), getSheet(currentSheet).getSheetName(), currentRow);
                 }
-            } else {
+            }else {
                 ++this.currentSheet;
                 if (this.currentSheet >= this.getNumberOfSheets()) {
                     if (this.logger.isDebugEnabled()) {
@@ -108,6 +113,36 @@ public abstract class AbstractExcelItemReader<T> extends AbstractItemCountingIte
             this.logger.debug("Openend sheet " + sheet.getSheetName() + ", with " + sheet.getPhysicalNumberOfRows() + " rows.");
         }
 
+    }
+
+    public boolean isRowBlank(Row r) {
+        boolean ret = true;
+
+		/*
+		 * If a row is null, it must be blank.
+		 */
+        if (r != null) {
+            Iterator<Cell> cellIter = r.cellIterator();
+			/*
+			 * Iterate through all cells in a row.
+			 */
+            while (cellIter.hasNext()) {
+				/*
+				 * If one of the cells in given row contains data, the row is
+				 * considered not blank.
+				 */
+                if (!this.isCellBlank(cellIter.next())) {
+                    ret = false;
+                    break;
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    public boolean isCellBlank(Cell c) {
+        return (c == null || c.getCellType() == Cell.CELL_TYPE_BLANK);
     }
 
     public void setResource(Resource resource) {

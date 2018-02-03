@@ -31,6 +31,8 @@ spring:
       enabled: false
     initializer:
       enabled: false
+  thymeleaf:
+    cache: false
 
 #mybatis相关配置
 mybatis-plus:
