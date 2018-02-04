@@ -1,5 +1,7 @@
 package com.zq.learn.fileuploader.support.batch.writer;
 
+import com.zq.learn.fileuploader.support.batch.Keys;
+import com.zq.learn.fileuploader.support.batch.exception.TableColumnNotMatchException;
 import com.zq.learn.fileuploader.support.batch.model.ParsedItem;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.StepExecution;
@@ -15,6 +17,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.util.Assert;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import javax.sql.DataSource;
 import java.sql.*;
@@ -40,17 +43,19 @@ public class CustomerJdbcBatchItemWriter implements ItemWriter<ParsedItem>,Initi
     /**
      *
      */
-    private ExecutionContext stepEc;
-
-    private JobExecution jobExecution;
+    private StepExecution stepExecution;
 
     private String table;
 
     private String sql = null;
 
+    private int columnNumber = 0;
+
+    private String fileKey;
+
     @BeforeStep
     void beforeStep(StepExecution stepExecution){
-        stepEc = stepExecution.getExecutionContext();
+        this.stepExecution = stepExecution;
     }
 
     public CustomerJdbcBatchItemWriter(JdbcBatchItemWriter delegate, String table) {
@@ -59,10 +64,17 @@ public class CustomerJdbcBatchItemWriter implements ItemWriter<ParsedItem>,Initi
 
         delegate.setItemPreparedStatementSetter((ItemPreparedStatementSetter<ParsedItem>) (item, ps) -> {
             int index = 1;
+            ps.setString(index++, getFileKey());
+
             Iterator<Entry<String, String>> iterator = item.iterator();
-            while (iterator.hasNext()) {
+            while (iterator.hasNext() && index <= columnNumber) {
                 Entry<String, String> next = iterator.next();
                 ps.setString(index++, next.getValue());
+            }
+
+            //补填缺失的列
+            while (index <= columnNumber) {
+                ps.setString(index++, null);
             }
         });
     }
@@ -87,12 +99,18 @@ public class CustomerJdbcBatchItemWriter implements ItemWriter<ParsedItem>,Initi
             return;
         }
 
-//        if (Math.random() < 0.2) {
-//            throw new SQLException("sql error");
-//        }
+        try {
+            parseSql(getColumnNames(items.get(0)));
+            delegate.write(items);
+        } catch (TableColumnNotMatchException e) {
 
-        parseSql(getColumnNames(items.get(0)));
-        delegate.write(items);
+        } catch (Exception e) {
+            e.printStackTrace();
+
+            ExecutionContext executionContext = stepExecution.getExecutionContext();
+            executionContext.putInt(Keys.WRITE_ERROR_COUNT,items.size());
+        }
+
     }
 
     private String[] getColumnNames(ParsedItem parsedItem) {
@@ -107,12 +125,14 @@ public class CustomerJdbcBatchItemWriter implements ItemWriter<ParsedItem>,Initi
         }
 
         checkTableExists(table,columnNames);
+        columnNumber = columnNames.length + 1;
 
         StringBuilder sqlBuilder = new StringBuilder();
         StringBuilder valueBuilder = new StringBuilder();
-        sqlBuilder.append("insert into "+table+"(");
-
+        sqlBuilder.append("insert into "+table+"(file_key,");
+        valueBuilder.append("?,");
         int columnLength = columnNames.length;
+        //+1 标识file_key
         for(int i = 0;i < columnLength;i++) {
             sqlBuilder.append(columnNames[i]);
             valueBuilder.append("?");
@@ -140,14 +160,15 @@ public class CustomerJdbcBatchItemWriter implements ItemWriter<ParsedItem>,Initi
                 StringBuilder sb = new StringBuilder();
                 sb.append("create table " + tableName + "(");
                 sb.append("id int(11) primary key NOT NULL AUTO_INCREMENT,");
+                sb.append("file_key varchar(64) NOT NULL,");
                 int fieldLength = columnNames.length;
                 for(int i = 0;i < fieldLength;i++) {
-                    sb.append(columnNames[i] + " text CHARACTER SET utf8 DEFAULT NULL");
-
-                    if (i < fieldLength - 1) {
+                    sb.append(columnNames[i] + " text CHARACTER SET utf8 DEFAULT NULL,");
+                    /*if (i < fieldLength - 1) {
                         sb.append(",");
-                    }
+                    }*/
                 }
+                sb.append("INDEX (file_key)");
                 sb.append(")");
                 namedParameterJdbcTemplate.getJdbcOperations().execute(sb.toString());
             }
@@ -169,4 +190,12 @@ public class CustomerJdbcBatchItemWriter implements ItemWriter<ParsedItem>,Initi
         Assert.notNull(namedParameterJdbcTemplate, "A DataSource or a NamedParameterJdbcTemplate is required.");
     }
 
+    public String getFileKey() {
+        if (StringUtils.hasText(fileKey)) {
+            return fileKey;
+        }
+
+        fileKey = stepExecution.getJobParameters().getString("fileKey");
+        return this.fileKey;
+    }
 }

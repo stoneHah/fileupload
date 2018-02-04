@@ -104,8 +104,11 @@ public abstract class AbstractExcelItemReader<T> extends AbstractItemCountingIte
         }
 
         for (int i = 0; i < this.linesToSkip; ++i) {
-            if (this.rowIterator.hasNext() && this.skippedRowsCallback != null) {
-                this.skippedRowsCallback.handleRow(this.rowIterator.next());
+            if (this.rowIterator.hasNext()) {
+                Row row = this.rowIterator.next();
+                if(this.skippedRowsCallback != null){
+                    this.skippedRowsCallback.handleRow(row);
+                }
             }
         }
 

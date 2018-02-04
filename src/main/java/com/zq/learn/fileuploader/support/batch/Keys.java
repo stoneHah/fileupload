@@ -13,4 +13,9 @@ public class Keys {
      * 最大可读取的数量
      */
     public static final String READ_MAX = KEY_PREFIX + "read.max";
+
+    /**
+     * 写入失败数量
+     */
+    public static final String WRITE_ERROR_COUNT = KEY_PREFIX + "write.fail.count";
 }
