@@ -6,10 +6,12 @@ import org.apache.poi.hssf.record.*;
 import org.apache.poi.poifs.filesystem.DocumentInputStream;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
 import org.jberet.support._private.SupportLogger;
+import org.jberet.support._private.SupportMessages;
 import org.jberet.support.io.ItemReaderWriterBase;
 import org.springframework.batch.item.*;
 import org.springframework.batch.item.file.ResourceAwareItemReaderItemStream;
 import org.springframework.batch.item.support.AbstractItemStreamItemReader;
+import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 
 import javax.batch.api.BatchProperty;
@@ -25,6 +27,16 @@ import java.util.concurrent.BlockingQueue;
  * @create 2018/2/5
  **/
 public class ExcelEventItemReader<T> extends AbstractItemStreamItemReader<T> implements ResourceAwareItemReaderItemStream<T>{
+
+    private int sheetIndex = 0;
+    private int end = 0;
+    private int start = 0;
+    private String sheetName;
+    private int maxColumnNum = 0;
+    protected int currentRowNum;
+    protected String[] header;
+    protected Map<String, String> headerMapping;
+    protected Integer headerRow = 0;
 
     private int linesToSkip = 0;
     private Resource resource;
@@ -47,24 +59,52 @@ public class ExcelEventItemReader<T> extends AbstractItemStreamItemReader<T> imp
 
     @Override
     public T read() throws Exception, UnexpectedInputException, ParseException, NonTransientResourceException {
-        return null;
+        final Object result = queue.take();
+        if (result instanceof Exception) {
+            if (result instanceof ReadCompletedException) {
+                return null;
+            }
+            throw (Exception) result;
+        }
+
+        Map<String,String> colMap = (Map<String, String>) result;
+        String[] values = new String[maxColumnNum + 1];
+        for(int i = 0;i <= maxColumnNum;i++) {
+            String val = colMap.get(String.valueOf(i));
+            values[i] = val == null ? "" : val;
+        }
+
+
+        return (T) values;
     }
 
     @Override
     public void open(ExecutionContext executionContext) {
-        super.open(executionContext);
+        if (this.end == 0) {
+            this.end = Integer.MAX_VALUE;
+        }
+        if (headerRow == null) {
+            if (header == null) {
+                throw SupportMessages.MESSAGES.invalidReaderWriterProperty(null, null, "header | headerRow");
+            }
+            headerRow = -1;
+        }
+        if (start == headerRow) {
+            start += 1;
+        }
+
 
         try {
-            doOpen();
+            initWorkbookAndSheet();
         }
         catch (Exception e) {
             throw new ItemStreamException("Failed to initialize the reader", e);
         }
     }
 
-    private void doOpen() throws Exception {
+    private void initWorkbookAndSheet() throws Exception {
         queue = new ArrayBlockingQueue<Object>(queueCapacity == 0 ? MAX_WORKSHEET_ROWS : queueCapacity);
-        final POIFSFileSystem poifs = new POIFSFileSystem(inputStream);
+        final POIFSFileSystem poifs = new POIFSFileSystem(resource.getInputStream());
         // get the Workbook (excel part) stream in a InputStream
         documentInputStream = poifs.createDocumentInputStream("Workbook");
         final HSSFRequest req = new HSSFRequest();
@@ -77,9 +117,6 @@ public class ExcelEventItemReader<T> extends AbstractItemStreamItemReader<T> imp
         req.addListenerForAllRecords(formatListener);
         final HSSFEventFactory factory = new HSSFEventFactory();
 
-        if (objectMapper == null) {
-            initJsonFactoryAndObjectMapper();
-        }
 
         new Thread(new Runnable() {
             @Override
@@ -289,7 +326,12 @@ public class ExcelEventItemReader<T> extends AbstractItemStreamItemReader<T> imp
             if (itemReader.header == null && row == itemReader.headerRow) {
                 readingHeaderRow = true;
                 readingDataRow = false;
-                headerIndexToLabelMapping.put(column, val);
+                headerIndexToLabelMapping.put(column, String.valueOf(column));
+//                headerIndexToLabelMapping.put(column, val);
+
+                if (itemReader.maxColumnNum < column) {
+                    itemReader.maxColumnNum = column;
+                }
             } else if (row >= itemReader.start) {
                 readingDataRow = true;
                 readingHeaderRow = false;
@@ -315,8 +357,8 @@ public class ExcelEventItemReader<T> extends AbstractItemStreamItemReader<T> imp
                     itemReader.queue.put(exception);
                     resultMap = new HashMap<String, String>();
                 } else {
-                    final Object obj;
-                    if (itemReader.beanType == List.class) {
+                    final Object obj = resultMap;
+                    /*if (itemReader.beanType == List.class) {
                         final List<String> resultList = new ArrayList<String>();
                         for (int i = 0; i < itemReader.header.length; ++i) {
                             resultList.add(resultMap.get(itemReader.header[i]));
@@ -329,7 +371,7 @@ public class ExcelEventItemReader<T> extends AbstractItemStreamItemReader<T> imp
                         if (!itemReader.skipBeanValidation) {
                             ItemReaderWriterBase.validate(obj);
                         }
-                    }
+                    }*/
                     itemReader.queue.put(obj);
                     resultMap = new HashMap<String, String>();
                 }
@@ -346,5 +388,18 @@ public class ExcelEventItemReader<T> extends AbstractItemStreamItemReader<T> imp
      */
     private static final class ReadCompletedException extends RuntimeException {
         private static final long serialVersionUID = -8693208957107027254L;
+    }
+
+    public static void main(String[] args) throws Exception {
+        ExcelEventItemReader<Object> itemReader = new ExcelEventItemReader<>();
+        itemReader.setResource(new FileSystemResource("/Users/bianweiping/Documents/Book1.xls"));
+
+        itemReader.open(null);
+
+        Object item = null;
+        while ((item = itemReader.read()) != null) {
+            System.out.println(Arrays.toString((Object[]) item));
+        }
+
     }
 }
