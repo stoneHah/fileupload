@@ -10,19 +10,24 @@ import com.zq.learn.fileuploader.common.enums.FileExtension;
  **/
 public class JobNameFactory {
     public static final String JOB_CSV_TO_DB = "CsvToDbJob";
-    public static final String JOB_EXCEL_TO_DB = "ExcelToDbJob";
+    public static final String JOB_EXCEL_XLSX_TO_DB = "ExcelXlsxToDbJob";
+    public static final String JOB_EXCEL_XLS_TO_DB = "ExcelXlsToDbJob";
 
     public static final String STEP_CSV_TO_DB = "CsvToDbStep";
-    public static final String STEP_EXCEL_TO_DB = "ExcelToDbStep";
+    public static final String STEP_EXCEL_XLSX_TO_DB = "ExcelXlsxToDbStep";
+    public static final String STEP_EXCEL_XLS_TO_DB = "ExcelXlsToDbStep";
 
     public static String getJobName(FileExtension extension){
         String jobName = null;
         switch (extension) {
-            case CSV:
+            case Csv:
                 jobName = JOB_CSV_TO_DB;
                 break;
-            case EXCEL:
-                jobName = JOB_EXCEL_TO_DB;
+            case Excel_XLS:
+                jobName = JOB_EXCEL_XLS_TO_DB;
+                break;
+            case Excel_XLSX:
+                jobName = JOB_EXCEL_XLSX_TO_DB;
                 break;
         }
 

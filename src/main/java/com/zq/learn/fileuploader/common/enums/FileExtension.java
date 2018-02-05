@@ -9,22 +9,19 @@ import org.apache.commons.lang.ArrayUtils;
  * @create 2018/2/1
  **/
 public enum  FileExtension {
-    CSV("csv"),EXCEL("xls","xlsx");
+    Csv("csv"),Excel_XLS("xls"),Excel_XLSX("xlsx");
 
-    private String[] extensions;
+    private String extension;
 
-    FileExtension(String... extensions) {
-        this.extensions = extensions;
+    FileExtension(String extension) {
+        this.extension = extension;
     }
 
     public static FileExtension getBy(String extension) {
         FileExtension[] values = values();
         for (FileExtension value : values) {
-            String[] extensions = value.extensions;
-            for (String s : extensions) {
-                if (s.equalsIgnoreCase(extension)) {
-                    return value;
-                }
+            if(value.extension.equalsIgnoreCase(extension)){
+                return value;
             }
         }
         return null;

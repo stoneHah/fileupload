@@ -42,7 +42,8 @@ public class FileImportServiceImpl implements IFileImportService {
     private static final String PARENT_DIR = "youedata" + File.separator + "fileupload";
     private static final String TEMP_PATH = System.getProperty("java.io.tmpdir") + PARENT_DIR;
     private static final char EXTENSION_SEPARATOR = '.';
-    private static final FileExtension[] supportExtension = new FileExtension[]{FileExtension.CSV, FileExtension.EXCEL};
+    private static final FileExtension[] supportExtension = new FileExtension[]{
+            FileExtension.Csv, FileExtension.Excel_XLS,FileExtension.Excel_XLSX};
 
     private static final ConcurrentHashMap<String, JobExecution> jobExecutionMap = new ConcurrentHashMap<>();
     private static final MultiValueMap<String, String> groupFileKeyMap = new LinkedMultiValueMap<>();

@@ -21,7 +21,7 @@ import java.util.Iterator;
  * @author qun.zheng
  * @create 2018/1/30
  **/
-public abstract class AbstractExcelItemReader<T> extends AbstractItemCountingItemStreamItemReader<T> implements ResourceAwareItemReaderItemStream<T>, InitializingBean {
+public abstract class AbstractExcelItemStreamReader<T> extends AbstractItemCountingItemStreamItemReader<T> implements ResourceAwareItemReaderItemStream<T>, InitializingBean {
     protected final Log logger = LogFactory.getLog(this.getClass());
     private Resource resource;
     private int linesToSkip = 0;
@@ -35,7 +35,7 @@ public abstract class AbstractExcelItemReader<T> extends AbstractItemCountingIte
 //    private Iterator<Sheet> sheetIterator;
     private Iterator<Row> rowIterator;
 
-    public AbstractExcelItemReader() {
+    public AbstractExcelItemStreamReader() {
         this.setName(ClassUtils.getShortName(this.getClass()));
     }
 

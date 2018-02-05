@@ -20,7 +20,7 @@ import java.util.Iterator;
  * @author qun.zheng
  * @create 2018/1/31
  **/
-public class PoiItemStreamReader<T> extends AbstractExcelItemReader<T>{
+public class PoiItemStreamReader<T> extends AbstractExcelItemStreamReader<T> {
     private Workbook workbook = null;
     private InputStream workbookStream = null;
 

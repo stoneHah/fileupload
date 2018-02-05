@@ -148,7 +148,7 @@ public class CustomerJdbcBatchItemWriter implements ItemWriter<ParsedItem>,Initi
         delegate.setSql(sql);
     }
 
-    private void checkTableExists(String tableName,String[] columnNames) {
+    private synchronized void checkTableExists(String tableName,String[] columnNames) {
         Connection conn = null;
         try {
             conn = dataSource.getConnection();
