@@ -41,17 +41,25 @@ public class PoiItemReader<T> extends AbstractExcelItemStreamReader<T> {
 
     @Override
     protected void openExcelFile(Resource resource) throws Exception {
-        this.workbookStream = resource.getInputStream();
+       /* this.workbookStream = resource.getInputStream();
         if (!this.workbookStream.markSupported() && !(this.workbookStream instanceof PushbackInputStream)) {
             throw new IllegalStateException("InputStream MUST either support mark/reset, or be wrapped as a PushbackInputStream");
         } else {
             this.workbook = WorkbookFactory.create(this.workbookStream);
-        }
+        }*/
+
+        workbookStream = resource.getInputStream();
+        workbook = StreamingReader.builder()
+                .rowCacheSize(100)
+                .bufferSize(4096)
+                .open(workbookStream);
 
     }
 
     @Override
     protected void doClose() throws Exception {
+        logger.info("close workbook...");
+
         IOUtils.closeQuietly(workbookStream);
         IOUtils.closeQuietly(workbook);
     }

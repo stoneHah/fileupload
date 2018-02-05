@@ -10,6 +10,7 @@ import com.zq.learn.fileuploader.support.batch.reader.PoiItemReader;
 import com.zq.learn.fileuploader.support.batch.reader.PoiItemStreamReader;
 import com.zq.learn.fileuploader.support.batch.writer.CustomerJdbcBatchItemWriter;
 import org.apache.poi.ss.usermodel.Cell;
+import org.jberet.support.io.ExcelEventItemReader;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
@@ -23,6 +24,7 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.skip.SkipPolicy;
 import org.springframework.batch.item.database.JdbcBatchItemWriter;
 import org.springframework.batch.item.file.FlatFileItemReader;
+import org.springframework.batch.jsr.item.ItemReaderAdapter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -95,8 +97,11 @@ public class BatchConfiguration {
 
     @Bean
     @StepScope
-    public PoiItemReader<ParsedItem> excelItemReader(@Value("#{jobParameters['resource']}") Resource resource) {
-        PoiItemReader<ParsedItem> reader = new PoiItemReader<>();
+    public ItemReaderAdapter<ParsedItem> excelItemReader(@Value("#{jobParameters['resource']}") Resource resource) {
+        ExcelEventItemReader excelEventItemReader = new ExcelEventItemReader();
+        ItemReaderAdapter itemReader = new ItemReaderAdapter(excelEventItemReader);
+        return itemReader;
+        /*PoiItemReader<ParsedItem> reader = new PoiItemReader<>();
         reader.setLinesToSkip(1);
         reader.setResource(resource);
         reader.setRowMapper(row -> {
@@ -110,7 +115,7 @@ public class BatchConfiguration {
             return item;
         });
 
-        return reader;
+        return reader;*/
     }
 
     private String getStringCellValue(Cell cell) {
