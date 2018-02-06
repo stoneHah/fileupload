@@ -3,6 +3,8 @@ package com.zq.learn.fileuploader.support.batch.writer;
 import com.zq.learn.fileuploader.support.batch.Keys;
 import com.zq.learn.fileuploader.support.batch.exception.TableColumnNotMatchException;
 import com.zq.learn.fileuploader.support.batch.model.ParsedItem;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.annotation.AfterStep;
@@ -22,6 +24,7 @@ import org.springframework.util.StringUtils;
 import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
@@ -33,6 +36,8 @@ import java.util.Map.Entry;
  * @create 2018/1/30
  **/
 public class CustomerJdbcBatchItemWriter implements ItemWriter<ParsedItem>,InitializingBean {
+
+    private static final Logger logger = LoggerFactory.getLogger(CustomerJdbcBatchItemWriter.class);
 
     private JdbcBatchItemWriter<ParsedItem> delegate;
 
@@ -99,6 +104,12 @@ public class CustomerJdbcBatchItemWriter implements ItemWriter<ParsedItem>,Initi
             return;
         }
 
+       /* if(Math.random() < 0.6){
+            throw new SQLException("write error...");
+        }
+
+        System.out.println("write data with num:" + items.size());*/
+
         try {
             parseSql(getColumnNames(items.get(0)));
             delegate.write(items);
@@ -148,7 +159,7 @@ public class CustomerJdbcBatchItemWriter implements ItemWriter<ParsedItem>,Initi
         delegate.setSql(sql);
     }
 
-    private synchronized void checkTableExists(String tableName,String[] columnNames) {
+    private void checkTableExists(String tableName,String[] columnNames) {
         Connection conn = null;
         try {
             conn = dataSource.getConnection();
@@ -158,7 +169,7 @@ public class CustomerJdbcBatchItemWriter implements ItemWriter<ParsedItem>,Initi
                 //Table Exist
             }else{
                 StringBuilder sb = new StringBuilder();
-                sb.append("create table " + tableName + "(");
+                sb.append("create table IF NOT EXISTS " + tableName + "(");
                 sb.append("id int(11) primary key NOT NULL AUTO_INCREMENT,");
                 sb.append("file_key varchar(64) NOT NULL,");
                 int fieldLength = columnNames.length;

@@ -175,7 +175,7 @@ public class FileImportServiceImpl implements IFileImportService {
             if (fileProcessResult.getStatus() != BatchStatus.COMPLETED) {
                 allComplete = false;
             }else{
-                if(maxTimeConsume == null || maxTimeConsume < fileProcessResult.getTimeConsume()){
+                if(maxTimeConsume == null || (fileProcessResult.getTimeConsume() != null && maxTimeConsume < fileProcessResult.getTimeConsume())){
                     maxTimeConsume = fileProcessResult.getTimeConsume();
                 }
             }

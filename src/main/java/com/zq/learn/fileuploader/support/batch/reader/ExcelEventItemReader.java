@@ -1,10 +1,13 @@
 package com.zq.learn.fileuploader.support.batch.reader;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.poi.hssf.eventusermodel.*;
 import org.apache.poi.hssf.eventusermodel.dummyrecord.LastCellOfRowDummyRecord;
 import org.apache.poi.hssf.record.*;
 import org.apache.poi.poifs.filesystem.DocumentInputStream;
 import org.apache.poi.poifs.filesystem.POIFSFileSystem;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.xmlbeans.impl.common.IOUtil;
 import org.jberet.support._private.SupportLogger;
 import org.jberet.support._private.SupportMessages;
 import org.jberet.support.io.ItemReaderWriterBase;
@@ -13,6 +16,8 @@ import org.springframework.batch.item.file.ResourceAwareItemReaderItemStream;
 import org.springframework.batch.item.support.AbstractItemStreamItemReader;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import javax.batch.api.BatchProperty;
 import java.io.IOException;
@@ -40,6 +45,7 @@ public class ExcelEventItemReader<T> extends AbstractItemStreamItemReader<T> imp
 
     private int linesToSkip = 0;
     private Resource resource;
+    private RowMapper<T> rowMapper;
 
     /**
      * Maximum worksheet row numbers for Excel 2003: 65,536 (2 ** 16)
@@ -75,7 +81,7 @@ public class ExcelEventItemReader<T> extends AbstractItemStreamItemReader<T> imp
         }
 
 
-        return (T) values;
+        return (T) rowMapper.mapRow(values);
     }
 
     @Override
@@ -133,6 +139,11 @@ public class ExcelEventItemReader<T> extends AbstractItemStreamItemReader<T> imp
     @Override
     public void close() {
         super.close();
+        try {
+            IOUtils.closeQuietly(resource.getInputStream());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         if (documentInputStream != null) {
             try {
                 documentInputStream.close();
@@ -145,6 +156,10 @@ public class ExcelEventItemReader<T> extends AbstractItemStreamItemReader<T> imp
     @Override
     public void setResource(Resource resource) {
         this.resource = resource;
+    }
+
+    public void setRowMapper(RowMapper<T> rowMapper) {
+        this.rowMapper = rowMapper;
     }
 
     public void setLinesToSkip(int linesToSkip) {
@@ -184,7 +199,7 @@ public class ExcelEventItemReader<T> extends AbstractItemStreamItemReader<T> imp
         public void processRecord(final Record record) {
             String keyForNextStringRecord = null;
             try {
-                if (currentSheetName == null || itemReader.sheetName.equals(currentSheetName)) {
+//                if (currentSheetName == null || itemReader.sheetName.equals(currentSheetName)) {
                     switch (record.getSid()) {
                         case BoundSheetRecord.sid:
                             final BoundSheetRecord sheetRec = (BoundSheetRecord) record;
@@ -198,6 +213,10 @@ public class ExcelEventItemReader<T> extends AbstractItemStreamItemReader<T> imp
                             if (bofRecord.getType() == BOFRecord.TYPE_WORKSHEET) {
                                 orderedBSRs = BoundSheetRecord.orderByBofPosition(boundSheetRecords);
                                 currentSheetName = orderedBSRs[currentSheetIndex].getSheetname();
+                                readingTargetSheet = true;
+
+                                /*orderedBSRs = BoundSheetRecord.orderByBofPosition(boundSheetRecords);
+                                currentSheetName = orderedBSRs[currentSheetIndex].getSheetname();
                                 if (itemReader.sheetName != null) {
                                     readingTargetSheet = currentSheetName.equals(itemReader.sheetName);
                                 } else {
@@ -207,7 +226,7 @@ public class ExcelEventItemReader<T> extends AbstractItemStreamItemReader<T> imp
                                     } else {
                                         readingTargetSheet = false;
                                     }
-                                }
+                                }*/
 
                             }
                             break;
@@ -276,14 +295,14 @@ public class ExcelEventItemReader<T> extends AbstractItemStreamItemReader<T> imp
                             }
                             break;
                         case EOFRecord.sid:
-                            if (readingTargetSheet && readingDataRow) {
+//                            if (readingTargetSheet && readingDataRow) {
+                            if (currentSheetIndex == boundSheetRecords.size() - 1) {
                                 queueRowData(null, true);
                             }
                             break;
                         default:
                             break;
                     }
-                }
 
                 // Handle end of row
                 if (readingTargetSheet && record instanceof LastCellOfRowDummyRecord) {
@@ -329,7 +348,7 @@ public class ExcelEventItemReader<T> extends AbstractItemStreamItemReader<T> imp
                 headerIndexToLabelMapping.put(column, String.valueOf(column));
 //                headerIndexToLabelMapping.put(column, val);
 
-                if (itemReader.maxColumnNum < column) {
+                if (itemReader.maxColumnNum < column && StringUtils.hasText(val)) {
                     itemReader.maxColumnNum = column;
                 }
             } else if (row >= itemReader.start) {
@@ -357,27 +376,44 @@ public class ExcelEventItemReader<T> extends AbstractItemStreamItemReader<T> imp
                     itemReader.queue.put(exception);
                     resultMap = new HashMap<String, String>();
                 } else {
-                    final Object obj = resultMap;
-                    /*if (itemReader.beanType == List.class) {
-                        final List<String> resultList = new ArrayList<String>();
-                        for (int i = 0; i < itemReader.header.length; ++i) {
-                            resultList.add(resultMap.get(itemReader.header[i]));
-                        }
-                        obj = resultList;
-                    } else if (itemReader.beanType == Map.class) {
-                        obj = resultMap;
-                    } else {
-                        obj = itemReader.objectMapper.convertValue(resultMap, itemReader.beanType);
-                        if (!itemReader.skipBeanValidation) {
-                            ItemReaderWriterBase.validate(obj);
-                        }
-                    }*/
-                    itemReader.queue.put(obj);
-                    resultMap = new HashMap<String, String>();
+                    if(!isEmptyRowData(resultMap)){
+                        final Object obj = resultMap;
+                        /*if (itemReader.beanType == List.class) {
+                            final List<String> resultList = new ArrayList<String>();
+                            for (int i = 0; i < itemReader.header.length; ++i) {
+                                resultList.add(resultMap.get(itemReader.header[i]));
+                            }
+                            obj = resultList;
+                        } else if (itemReader.beanType == Map.class) {
+                            obj = resultMap;
+                        } else {
+                            obj = itemReader.objectMapper.convertValue(resultMap, itemReader.beanType);
+                            if (!itemReader.skipBeanValidation) {
+                                ItemReaderWriterBase.validate(obj);
+                            }
+                        }*/
+                        itemReader.queue.put(obj);
+                        resultMap = new HashMap<String, String>();
+                    }
                 }
             } catch (final InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
+        }
+
+        private boolean isEmptyRowData(Map<String, String> resultMap) {
+            if(CollectionUtils.isEmpty(resultMap)){
+                return true;
+            }
+
+            boolean valuesEmpty = true;
+            for (String  val : resultMap.values()){
+                if (StringUtils.hasText(val)) {
+                    valuesEmpty = false;
+                    break;
+                }
+            }
+            return valuesEmpty;
         }
     }
 
@@ -388,6 +424,10 @@ public class ExcelEventItemReader<T> extends AbstractItemStreamItemReader<T> imp
      */
     private static final class ReadCompletedException extends RuntimeException {
         private static final long serialVersionUID = -8693208957107027254L;
+    }
+
+    public static interface RowMapper<T>{
+        T mapRow(String[] row) throws Exception;
     }
 
     public static void main(String[] args) throws Exception {
