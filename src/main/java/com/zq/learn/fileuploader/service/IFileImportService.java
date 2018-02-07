@@ -1,6 +1,7 @@
 package com.zq.learn.fileuploader.service;
 
 import com.baomidou.mybatisplus.annotations.TableField;
+import com.zq.learn.fileuploader.common.enums.JobStatus;
 import com.zq.learn.fileuploader.controller.dto.Response;
 import com.zq.learn.fileuploader.controller.dto.Response.ResponseBuilder;
 import com.zq.learn.fileuploader.exception.FileImportException;
@@ -75,10 +76,12 @@ public interface IFileImportService {
 
         public static final FileProcessResult EMPTY = new FileProcessResult();
 
-        private BatchStatus status = BatchStatus.STARTING;
+        private JobStatus status = JobStatus.Starting;
 
         private Integer readCount;
         private Integer writeCount;
+
+        private boolean error = false;
         private String errorMsg;
         private Long timeConsume = null;
 
@@ -98,11 +101,11 @@ public interface IFileImportService {
             this.writeCount = writeCount;
         }
 
-        public BatchStatus getStatus() {
+        public JobStatus getStatus() {
             return status;
         }
 
-        public void setStatus(BatchStatus status) {
+        public void setStatus(JobStatus status) {
             this.status = status;
         }
 
@@ -112,6 +115,14 @@ public interface IFileImportService {
 
         public void setTimeConsume(Long timeConsume) {
             this.timeConsume = timeConsume;
+        }
+
+        public boolean isError() {
+            return error;
+        }
+
+        public void setError(boolean error) {
+            this.error = error;
         }
 
         public String getErrorMsg() {

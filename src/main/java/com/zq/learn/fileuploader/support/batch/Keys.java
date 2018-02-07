@@ -18,4 +18,10 @@ public class Keys {
      * 写入失败数量
      */
     public static final String WRITE_ERROR_COUNT = KEY_PREFIX + "write.fail.count";
+
+    /**
+     * 身份证列
+     */
+    public static final String ID_CARD_COLUMNS = KEY_PREFIX + "idcard.columns";
+
 }

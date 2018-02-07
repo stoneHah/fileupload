@@ -4,24 +4,27 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import sun.swing.plaf.synth.DefaultSynthStyle.StateInfo;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ParsedItem {
     private static final Pattern valueCleanPattern = Pattern.compile("(.*)\\s+['’]$");
 
-    private LinkedHashMap<String, String> map;
+    private List<KeyValue<String, String>> keyValueList;
 
     public ParsedItem() {
-        this.map = new LinkedHashMap<>();
+        this.keyValueList = new ArrayList<>();
     }
 
     public ParsedItem put(String key, String value) {
-        map.put(key, cleanValue(value));
+        keyValueList.add(new KeyValue<>(key, cleanValue(value)));
         return this;
     }
 
@@ -31,28 +34,36 @@ public class ParsedItem {
         }
         value = StringUtils.trimWhitespace(value);
         Matcher matcher = valueCleanPattern.matcher(value);
-        if(matcher.matches()){
+        if (matcher.matches()) {
             value = StringUtils.trimWhitespace(matcher.group(1));
         }
 
         return value;
     }
 
-    public boolean isEmpty(){
-        return CollectionUtils.isEmpty(map);
+    public boolean isEmpty() {
+        return CollectionUtils.isEmpty(keyValueList);
     }
 
-    public void forEach(BiConsumer<String ,String> consumer){
-        map.forEach(consumer);
+    public void forEach(Consumer<KeyValue<String, String>> consumer) {
+        keyValueList.forEach(consumer);
     }
 
-    public Iterator<Entry<String,String>> iterator(){
-        return map.entrySet().iterator();
+    public Iterator<KeyValue<String, String>> iterator() {
+        return keyValueList.iterator();
+    }
+
+    public KeyValue<String,String> get(int index) {
+        if (isEmpty() || (keyValueList.size() - 1 < index)) {
+            return null;
+        }
+
+        return keyValueList.get(index);
     }
 
     @Override
     public String toString() {
-        return map.toString();
+        return keyValueList.toString();
     }
 
     public static void main(String[] args) {

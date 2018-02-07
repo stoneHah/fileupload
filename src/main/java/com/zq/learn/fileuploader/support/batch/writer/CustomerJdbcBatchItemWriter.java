@@ -2,7 +2,12 @@ package com.zq.learn.fileuploader.support.batch.writer;
 
 import com.zq.learn.fileuploader.support.batch.Keys;
 import com.zq.learn.fileuploader.support.batch.exception.TableColumnNotMatchException;
+import com.zq.learn.fileuploader.support.batch.exception.TableCreateFailedException;
+import com.zq.learn.fileuploader.support.batch.model.BatchExceptionInfo;
+import com.zq.learn.fileuploader.support.batch.model.BatchExceptionInfo.ChunkExceptionContext;
+import com.zq.learn.fileuploader.support.batch.model.KeyValue;
 import com.zq.learn.fileuploader.support.batch.model.ParsedItem;
+import org.apache.commons.lang.ArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.JobExecution;
@@ -39,6 +44,8 @@ public class CustomerJdbcBatchItemWriter implements ItemWriter<ParsedItem>,Initi
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerJdbcBatchItemWriter.class);
 
+    private static final String[] excludeColumns = new String[]{"id","file_key"};
+
     private JdbcBatchItemWriter<ParsedItem> delegate;
 
     private NamedParameterJdbcOperations namedParameterJdbcTemplate;
@@ -71,9 +78,9 @@ public class CustomerJdbcBatchItemWriter implements ItemWriter<ParsedItem>,Initi
             int index = 1;
             ps.setString(index++, getFileKey());
 
-            Iterator<Entry<String, String>> iterator = item.iterator();
+            Iterator<KeyValue<String, String>> iterator = item.iterator();
             while (iterator.hasNext() && index <= columnNumber) {
-                Entry<String, String> next = iterator.next();
+                KeyValue<String, String> next = iterator.next();
                 ps.setString(index++, next.getValue());
             }
 
@@ -104,33 +111,53 @@ public class CustomerJdbcBatchItemWriter implements ItemWriter<ParsedItem>,Initi
             return;
         }
 
-       /* if(Math.random() < 0.6){
-            throw new SQLException("write error...");
-        }
-
-        System.out.println("write data with num:" + items.size());*/
-
         try {
             parseSql(getColumnNames(items.get(0)));
             delegate.write(items);
-        } catch (TableColumnNotMatchException e) {
+        } catch (TableCreateFailedException | TableColumnNotMatchException e) {
+            BatchExceptionInfo batchExceptionInfo = fetchBatchExceptionInfo();
+            ChunkExceptionContext chunkExceptionContext = new ChunkExceptionContext();
+            chunkExceptionContext.addException(e);
+            batchExceptionInfo.addChunkExceptionContext(chunkExceptionContext);
 
+            e.printStackTrace();
+            throw e;
         } catch (Exception e) {
             e.printStackTrace();
 
-            ExecutionContext executionContext = stepExecution.getExecutionContext();
-            executionContext.putInt(Keys.WRITE_ERROR_COUNT,items.size());
+            BatchExceptionInfo batchExceptionInfo = fetchBatchExceptionInfo();
+            ChunkExceptionContext chunkExceptionContext = new ChunkExceptionContext();
+            chunkExceptionContext.addException(e);
+            chunkExceptionContext.addExceptionCount(items.size());
+            batchExceptionInfo.addChunkExceptionContext(chunkExceptionContext);
         }
 
+    }
+
+    /**
+     * 获取批处理异常信息
+     * @return
+     */
+    private BatchExceptionInfo fetchBatchExceptionInfo() {
+        ExecutionContext executionContext = stepExecution.getExecutionContext();
+
+        BatchExceptionInfo batchExceptionInfo = null;
+        if(executionContext.containsKey(BatchExceptionInfo.WRITE_BATCH_EXCEPTION)){
+            batchExceptionInfo = (BatchExceptionInfo) executionContext.get(BatchExceptionInfo.WRITE_BATCH_EXCEPTION);
+        }else{
+            batchExceptionInfo = new BatchExceptionInfo();
+            executionContext.put(BatchExceptionInfo.WRITE_BATCH_EXCEPTION,batchExceptionInfo);
+        }
+        return batchExceptionInfo;
     }
 
     private String[] getColumnNames(ParsedItem parsedItem) {
         List<String> columnNames = new ArrayList<>();
-        parsedItem.forEach((key,val) -> columnNames.add(key));
+        parsedItem.forEach(keyValue -> columnNames.add(keyValue.getKey()));
         return columnNames.toArray(new String[columnNames.size()]);
     }
 
-    private void parseSql(String[] columnNames) {
+    private void parseSql(String[] columnNames) throws TableColumnNotMatchException,TableCreateFailedException {
         if (sql != null) {
             return;
         }
@@ -159,7 +186,7 @@ public class CustomerJdbcBatchItemWriter implements ItemWriter<ParsedItem>,Initi
         delegate.setSql(sql);
     }
 
-    private void checkTableExists(String tableName,String[] columnNames) {
+    private void checkTableExists(String tableName,String[] columnNames) throws TableColumnNotMatchException, TableCreateFailedException {
         Connection conn = null;
         try {
             conn = dataSource.getConnection();
@@ -167,6 +194,20 @@ public class CustomerJdbcBatchItemWriter implements ItemWriter<ParsedItem>,Initi
             ResultSet rs = metaData.getTables(null, null, tableName, null);
             if (rs.next()) {
                 //Table Exist
+                ResultSet resultSet = metaData.getColumns(null, null, tableName, null);
+                List<String> curColumns = new ArrayList<>();
+                while (resultSet.next()) {
+                    String columnName = resultSet.getString("COLUMN_NAME");
+                    if (!ArrayUtils.contains(excludeColumns, columnName.toLowerCase())) {
+                        curColumns.add(columnName);
+                    }
+                }
+
+                if(columnNames.length > curColumns.size()){
+                    //列数不匹配
+                    throw new TableColumnNotMatchException(tableName, curColumns.toArray(new String[curColumns.size()]), columnNames);
+                }
+
             }else{
                 StringBuilder sb = new StringBuilder();
                 sb.append("create table IF NOT EXISTS " + tableName + "(");
@@ -184,7 +225,7 @@ public class CustomerJdbcBatchItemWriter implements ItemWriter<ParsedItem>,Initi
                 namedParameterJdbcTemplate.getJdbcOperations().execute(sb.toString());
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new TableCreateFailedException(table);
         } finally {
             if (conn != null) {
                 try {

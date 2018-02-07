@@ -1,6 +1,7 @@
 package com.zq.learn.fileuploader.service.impl;
 
 import com.zq.learn.fileuploader.common.enums.FileExtension;
+import com.zq.learn.fileuploader.common.enums.JobStatus;
 import com.zq.learn.fileuploader.exception.FileImportException;
 import com.zq.learn.fileuploader.persistence.dao.FileImportInfoMapper;
 import com.zq.learn.fileuploader.persistence.model.FileImportInfo;
@@ -8,6 +9,7 @@ import com.zq.learn.fileuploader.service.IFileImportService;
 import com.zq.learn.fileuploader.support.batch.JobFactory;
 import com.zq.learn.fileuploader.support.batch.JobNameFactory;
 import com.zq.learn.fileuploader.support.batch.Keys;
+import com.zq.learn.fileuploader.support.batch.model.BatchExceptionInfo;
 import com.zq.learn.fileuploader.utils.IdGenerator;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.ArrayUtils;
@@ -172,7 +174,7 @@ public class FileImportServiceImpl implements IFileImportService {
             FileProcessResult fileProcessResult = getFileProcessResult(fileKey);
             map.put(fileKey, fileProcessResult);
 
-            if (fileProcessResult.getStatus() != BatchStatus.COMPLETED) {
+            if (fileProcessResult.getStatus() == JobStatus.Starting) {
                 allComplete = false;
             }else{
                 if(maxTimeConsume == null || (fileProcessResult.getTimeConsume() != null && maxTimeConsume < fileProcessResult.getTimeConsume())){
@@ -209,13 +211,25 @@ public class FileImportServiceImpl implements IFileImportService {
         FileProcessResult result = new FileProcessResult();
 
         StepExecution stepExecution = stepExecutions.iterator().next();
+        ExecutionContext executionContext = stepExecution.getExecutionContext();
+
+        int errorCount = 0;
+        if(executionContext.containsKey(BatchExceptionInfo.WRITE_BATCH_EXCEPTION)){
+            BatchExceptionInfo batchExceptionInfo = (BatchExceptionInfo) executionContext.get(BatchExceptionInfo.WRITE_BATCH_EXCEPTION);
+            if (!batchExceptionInfo.isEmpty()) {
+                errorCount = batchExceptionInfo.getExceptionCount();
+
+                result.setError(true);
+                result.setErrorMsg(batchExceptionInfo.getExceptionInfo());
+            }
+        }
+
         result.setReadCount(stepExecution.getReadCount());
-        result.setWriteCount(stepExecution.getWriteCount());
-        result.setStatus(stepExecution.getStatus());
+        result.setWriteCount(stepExecution.getWriteCount() - errorCount);
+        result.setStatus(JobStatus.parse(stepExecution.getStatus()));
 
         if (stepExecution.getEndTime() != null) {
             result.setTimeConsume(stepExecution.getEndTime().getTime() - stepExecution.getStartTime().getTime());
-            result.setStatus(BatchStatus.COMPLETED);
         }
 
         return result;

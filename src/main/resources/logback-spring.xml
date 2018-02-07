@@ -20,7 +20,7 @@
     </appender>
 
     <!--<logger name="org.springframework" level="error"/>-->
-    <!--<logger name="jdbc.connection" level="OFF"/>-->
+    <logger name="jdbc.connection" level="info"/>
     <!--<logger name="org.apache" level="error"/>-->
     <!--<logger name="com.alibaba" level="error"/>-->
     <!--<logger name="org.apache.kafka.clients.producer.ProducerConfig" level="warn"/>-->
