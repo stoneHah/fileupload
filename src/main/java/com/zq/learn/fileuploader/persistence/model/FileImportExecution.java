@@ -41,8 +41,15 @@ public class FileImportExecution extends Model<FileImportExecution> {
 	private Integer readCount;
 	@TableField("write_count")
 	private Integer writeCount;
+	@TableField("filter_count")
+	private Integer filterCount;
+	@TableField("skip_count")
+	private Integer skipCount;
 	@TableField("failed_message")
 	private String failedMessage;
+
+	@TableField("filtered_message")
+	private String filteredMessage;
     /**
      * 任务执行状态
      */
@@ -107,6 +114,14 @@ public class FileImportExecution extends Model<FileImportExecution> {
 		this.failedMessage = failedMessage;
 	}
 
+	public String getFilteredMessage() {
+		return filteredMessage;
+	}
+
+	public void setFilteredMessage(String filteredMessage) {
+		this.filteredMessage = filteredMessage;
+	}
+
 	public Integer getStatus() {
 		return status;
 	}
@@ -121,6 +136,22 @@ public class FileImportExecution extends Model<FileImportExecution> {
 
 	public void setUpdateTime(Date updateTime) {
 		this.updateTime = updateTime;
+	}
+
+	public Integer getFilterCount() {
+		return filterCount;
+	}
+
+	public void setFilterCount(Integer filterCount) {
+		this.filterCount = filterCount;
+	}
+
+	public Integer getSkipCount() {
+		return skipCount;
+	}
+
+	public void setSkipCount(Integer skipCount) {
+		this.skipCount = skipCount;
 	}
 
 	@Override

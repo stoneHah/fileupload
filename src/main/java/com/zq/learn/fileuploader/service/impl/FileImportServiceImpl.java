@@ -2,6 +2,7 @@ package com.zq.learn.fileuploader.service.impl;
 
 import com.zq.learn.fileuploader.common.enums.FileExtension;
 import com.zq.learn.fileuploader.common.enums.JobStatus;
+import com.zq.learn.fileuploader.controller.dto.FileImportContext;
 import com.zq.learn.fileuploader.exception.FileImportException;
 import com.zq.learn.fileuploader.persistence.dao.FileImportInfoMapper;
 import com.zq.learn.fileuploader.persistence.model.FileImportInfo;
@@ -10,6 +11,7 @@ import com.zq.learn.fileuploader.support.batch.JobFactory;
 import com.zq.learn.fileuploader.support.batch.JobNameFactory;
 import com.zq.learn.fileuploader.support.batch.Keys;
 import com.zq.learn.fileuploader.support.batch.model.BatchExceptionInfo;
+import com.zq.learn.fileuploader.support.batch.model.ParsedItem;
 import com.zq.learn.fileuploader.utils.IdGenerator;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.ArrayUtils;
@@ -60,7 +62,7 @@ public class FileImportServiceImpl implements IFileImportService {
     private JobFactory jobFactory;
 
     @Override
-    public String importFile(String groupKey, String tableName, String fileName, InputStream inputStream) throws FileImportException {
+    public String importFile(String groupKey, String tableName, String fileName, InputStream inputStream, FileImportContext fileImportContext) throws FileImportException {
         assertFileSupport(fileName);
 
         String fileKey = IdGenerator.getId();
@@ -69,7 +71,7 @@ public class FileImportServiceImpl implements IFileImportService {
 
         try {
             String fullPath = saveFile(savedFileName, inputStream);
-            Long jobInstanceId = runImportJob(tableName, fileKey, fullPath);
+            Long jobInstanceId = runImportJob(fileImportContext,tableName, fileKey, fullPath);
 
             saveImportInfo(new FileImportInfoBuilder()
                     .fileKey(fileKey)
@@ -119,18 +121,25 @@ public class FileImportServiceImpl implements IFileImportService {
         return destPath;
     }
 
-    private Long runImportJob(String tableName, String fileKey, String fullPath) throws FileImportException {
+    private Long runImportJob(FileImportContext fileImportContext, String tableName, String fileKey, String fullPath) throws FileImportException {
         Map<String, JobParameter> parameters = new HashMap<>();
 
         JobParameter parameter = new JobParameter("file:///" + fullPath);
         JobParameter tableParam = new JobParameter(tableName);
-        JobParameter dateParam = new JobParameter(new Date());
         JobParameter fileKeyParam = new JobParameter(fileKey);
+        JobParameter dateParam = new JobParameter(new Date());
 
         parameters.put("fileKey", fileKeyParam);
         parameters.put("resource", parameter);
         parameters.put("tableName", tableParam);
         parameters.put("date", dateParam);
+
+        if (fileImportContext != null) {
+            if (fileImportContext.isValidateIDCard()) {
+                JobParameter idCardParam = new JobParameter(fileImportContext.getIdcardColumns());
+                parameters.put(Keys.ID_CARD_COLUMNS,idCardParam);
+            }
+        }
 
         String extension = StringUtils.getFilenameExtension(fullPath);
         Job job = getJob(extension);
@@ -185,7 +194,7 @@ public class FileImportServiceImpl implements IFileImportService {
 
         result.setFilesProcessResult(map);
         if (allComplete) {
-            result.setStatus(BatchStatus.COMPLETED);
+            result.setStatus(JobStatus.Complete);
             result.setTimeConsume(maxTimeConsume);
         }
 
@@ -220,11 +229,12 @@ public class FileImportServiceImpl implements IFileImportService {
                 errorCount = batchExceptionInfo.getExceptionCount();
 
                 result.setError(true);
-                result.setErrorMsg(batchExceptionInfo.getExceptionInfo());
+                result.setErrorMsgList(batchExceptionInfo.getExceptionMessageList());
             }
         }
 
         result.setReadCount(stepExecution.getReadCount());
+        result.setFilterCount(stepExecution.getFilterCount());
         result.setWriteCount(stepExecution.getWriteCount() - errorCount);
         result.setStatus(JobStatus.parse(stepExecution.getStatus()));
 
@@ -232,7 +242,23 @@ public class FileImportServiceImpl implements IFileImportService {
             result.setTimeConsume(stepExecution.getEndTime().getTime() - stepExecution.getStartTime().getTime());
         }
 
+        if (result.getFilterCount() > 0) {
+            result.setFilterRecords((List<ParsedItem>) stepExecution.getExecutionContext().get(Keys.FILTER_RECORDS));
+        }
+
         return result;
+    }
+
+    private String getFilterRecords(List<ParsedItem> list) {
+        StringBuilder builder = new StringBuilder();
+
+        if (!CollectionUtils.isEmpty(list)) {
+            for (ParsedItem parsedItem : list) {
+                builder.append(parsedItem.toString()).append("\n");
+            }
+        }
+
+        return builder.toString();
     }
 
     public static void main(String[] args) {

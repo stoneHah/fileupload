@@ -1,5 +1,6 @@
 package com.zq.learn.fileuploader.controller;
 
+import com.zq.learn.fileuploader.controller.dto.FileImportContext;
 import com.zq.learn.fileuploader.controller.dto.FileUploadResult;
 import com.zq.learn.fileuploader.controller.dto.Response;
 import com.zq.learn.fileuploader.service.IFileImportService;
@@ -12,6 +13,7 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.fileupload.util.Streams;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.convert.ConversionService;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -30,10 +32,19 @@ import java.util.*;
 @Controller
 @RequestMapping("/")
 public class FileUploadController {
+    private static final String FORM_TABLE_FIELD = "table";
+    private static final String FORM_VALIDATE_IDCARD_FIELD = "validateIDCard";
+    private static final String FORM_IDCARD_COLUMNS_FIELD = "idcardColumns";
 
     @Autowired
     private IFileImportService fileImportService;
 
+    /**
+     * 支持table、validateIDCard、idcardColumns
+     * @param request
+     * @param redirectAttributes
+     * @return
+     */
     @RequestMapping(value = "/upload",method = RequestMethod.POST)
     public String upload(
             HttpServletRequest request,
@@ -48,6 +59,7 @@ public class FileUploadController {
             // Parse the request
             FileItemIterator iter = upload.getItemIterator(request);
             String tableName = null;
+            FileImportContext fileImportContext = new FileImportContext();
             while (iter.hasNext()) {
                 FileItemStream item = iter.next();
 
@@ -59,7 +71,7 @@ public class FileUploadController {
                         //导入文件
                         String fileKey = null;
                         try {
-                            fileKey = fileImportService.importFile(groupKey, tableName, filename, stream);
+                            fileKey = fileImportService.importFile(groupKey, tableName, filename, stream,fileImportContext);
                             fileNameKeyMap.put(filename, fileKey);
                         } catch (Exception e) {
                             fileNameErrorMap.put(filename, e.getMessage());
@@ -67,8 +79,11 @@ public class FileUploadController {
                         }
                     }else{
                         String fieldName = item.getFieldName();
-                        if ("table".equals(fieldName)) {
-                            tableName = Streams.asString(stream);
+                        String fieldValue = Streams.asString(stream);
+                        if (FORM_TABLE_FIELD.equals(fieldName)) {
+                            tableName = fieldValue;
+                        }else{
+                            parseContextParam(fileImportContext,fieldName,fieldValue);
                         }
                     }
                 }  finally {
@@ -94,6 +109,14 @@ public class FileUploadController {
         return "redirect:/uploadStatus";
     }
 
+    private void parseContextParam(FileImportContext fileImportContext, String fieldName, String fieldValue) {
+        if (FORM_VALIDATE_IDCARD_FIELD.equals(fieldName)) {
+            fileImportContext.setValidateIDCard(Boolean.valueOf(fieldValue));
+        } else if (FORM_IDCARD_COLUMNS_FIELD.equals(fieldName)) {
+            fileImportContext.setIdcardColumns(fieldValue);
+        }
+    }
+
     @RequestMapping(value ="",method = RequestMethod.GET)
     public String uploaderPage() {
         return "uploader";
@@ -108,6 +131,9 @@ public class FileUploadController {
     @ResponseBody
     public GroupFileProcessResult getUploadProgress(@PathVariable("groupKey") String groupKey){
         return fileImportService.getFilesProcessResult(groupKey);
+    }
+
+    public static void main(String[] args) {
     }
 
 }

@@ -7,16 +7,74 @@
 <head>
     <title>extraThyme: Thymeland's football website</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+
+    <link href="/static/css/bootstrap.min.css"
+          rel="stylesheet" type="text/css" />
+    <link href="/static/css/font-awesome.min.css"
+          rel="stylesheet" type="text/css" />
     <script type="application/javascript" src="/static/js/jquery.min.js"></script>
 </head>
 
 <body>
-    <form method="POST" action="/upload" enctype="multipart/form-data">
+    <div class="col-sm-6" style="margin-top: 40px;">
+        <form class="form-horizontal" method="POST" action="/upload" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="table" class="col-sm-2 control-label">表名</label>
+                <div class="col-sm-5">
+                    <input type="text" class="form-control" id="table" name="table" placeholder="表名" />
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="col-sm-offset-2 col-sm-5">
+                    <div class="checkbox">
+                        <label>
+                            <input type="checkbox" name="validateIDCard" id="validateIDCard" value="true"/> 开启身份证验证
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div id="idcardColumnsForm" class="form-group" for="validateIDCard" style="display: none;">
+                <label for="idcardColumns" class="col-sm-2 control-label">身份证列号</label>
+                <div class="col-sm-5">
+                    <input type="text" class="form-control" name="idcardColumns" id="idcardColumns" placeholder="身份证列号" />
+                    <span id="helpBlock2" class="help-block">以1位起始序列,多个列以逗号进行分隔</span>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="exampleInputFile" class="col-sm-2 control-label">上传文件</label>
+                <div class="col-sm-5">
+                    <input type="file" name="file" multiple="multiple" id="exampleInputFile"/>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="col-sm-offset-2 col-sm-10">
+                    <button type="submit" class="btn btn-default">Submit</button>
+                </div>
+            </div>
+        </form>
+    </div>
+    <!--<form method="POST" action="/upload" enctype="multipart/form-data">
         <label>表名:</label><input type="text" name="table"/>
         <input type="file" name="file" multiple="multiple"/><br/><br/>
         <input type="submit" value="Submit" />
-    </form>
+    </form>-->
 
 </body>
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    $(function(){
+        var $idcardColumnsForm = $('#idcardColumnsForm');
+        $('#validateIDCard').click(function(){
+            if(this.checked){
+                $idcardColumnsForm.show();
+            }else{
+                $idcardColumnsForm.hide();
+            }
+        });
+    });
+
+    /*]]>*/
+</script>
 
 </html>

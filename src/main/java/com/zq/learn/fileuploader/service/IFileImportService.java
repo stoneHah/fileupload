@@ -1,15 +1,14 @@
 package com.zq.learn.fileuploader.service;
 
-import com.baomidou.mybatisplus.annotations.TableField;
 import com.zq.learn.fileuploader.common.enums.JobStatus;
-import com.zq.learn.fileuploader.controller.dto.Response;
-import com.zq.learn.fileuploader.controller.dto.Response.ResponseBuilder;
+import com.zq.learn.fileuploader.controller.dto.FileImportContext;
 import com.zq.learn.fileuploader.exception.FileImportException;
 import com.zq.learn.fileuploader.persistence.model.FileImportInfo;
-import org.apache.poi.ss.formula.functions.T;
+import com.zq.learn.fileuploader.support.batch.model.ParsedItem;
 import org.springframework.batch.core.BatchStatus;
 
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,9 +25,10 @@ public interface IFileImportService {
      * @param tableName
      * @param fileName
      * @param inputStream
+     * @param fileImportContext
      * @return 文件Key
      */
-    String importFile(String groupKey,String tableName, String fileName, InputStream inputStream) throws FileImportException;
+    String importFile(String groupKey, String tableName, String fileName, InputStream inputStream, FileImportContext fileImportContext) throws FileImportException;
 
     /**
      * 获取文件处理结果信息
@@ -40,15 +40,15 @@ public interface IFileImportService {
     public static class GroupFileProcessResult{
         public static final GroupFileProcessResult EMPTY = new GroupFileProcessResult();
 
-        private BatchStatus status = BatchStatus.STARTING;
+        private JobStatus status = JobStatus.Starting;
         private Long timeConsume = null;
         private Map<String,FileProcessResult> filesProcessResult;
 
-        public BatchStatus getStatus() {
+        public JobStatus getStatus() {
             return status;
         }
 
-        public void setStatus(BatchStatus status) {
+        public void setStatus(JobStatus status) {
             this.status = status;
         }
 
@@ -80,9 +80,19 @@ public interface IFileImportService {
 
         private Integer readCount;
         private Integer writeCount;
+        /**
+         * 过滤记录数
+         */
+        private Integer filterCount;
 
         private boolean error = false;
-        private String errorMsg;
+        private List<String> errorMsgList;
+
+        /**
+         * 过滤记录
+         */
+        private List<ParsedItem> filterRecords;
+
         private Long timeConsume = null;
 
         public Integer getReadCount() {
@@ -99,6 +109,14 @@ public interface IFileImportService {
 
         public void setWriteCount(Integer writeCount) {
             this.writeCount = writeCount;
+        }
+
+        public Integer getFilterCount() {
+            return filterCount;
+        }
+
+        public void setFilterCount(Integer filterCount) {
+            this.filterCount = filterCount;
         }
 
         public JobStatus getStatus() {
@@ -125,12 +143,20 @@ public interface IFileImportService {
             this.error = error;
         }
 
-        public String getErrorMsg() {
-            return errorMsg;
+        public List<String> getErrorMsgList() {
+            return errorMsgList;
         }
 
-        public void setErrorMsg(String errorMsg) {
-            this.errorMsg = errorMsg;
+        public void setErrorMsgList(List<String> errorMsgList) {
+            this.errorMsgList = errorMsgList;
+        }
+
+        public List<ParsedItem> getFilterRecords() {
+            return filterRecords;
+        }
+
+        public void setFilterRecords(List<ParsedItem> filterRecords) {
+            this.filterRecords = filterRecords;
         }
     }
 

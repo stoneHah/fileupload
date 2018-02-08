@@ -8,10 +8,12 @@ import org.apache.commons.lang.ArrayUtils;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.annotation.BeforeStep;
+import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.StringTokenizer;
 
@@ -36,10 +38,34 @@ public class ParsedItemProcessor implements ItemProcessor<ParsedItem,ParsedItem>
         String idcardColumns = jobParameters.getString(Keys.ID_CARD_COLUMNS);
         if (StringUtils.hasText(idcardColumns)) {
             if(!isValidByIDCardCheck(item,idcardColumns)){
+                addFilterRecordToContext(item);
                 return null;
             }
         }
+
         return item;
+    }
+
+    /**
+     * 添加过滤记录 到上下文
+     * @param parsedItem
+     */
+    private void addFilterRecordToContext(ParsedItem parsedItem) {
+        ExecutionContext executionContext = stepExecution.getExecutionContext();
+
+        List<ParsedItem> list = null;
+        if (!executionContext.containsKey(Keys.FILTER_RECORDS)) {
+            synchronized (this) {
+                if (!executionContext.containsKey(Keys.FILTER_RECORDS)) {
+                    list = Collections.synchronizedList(new ArrayList<ParsedItem>());
+                    executionContext.put(Keys.FILTER_RECORDS,list);
+                }
+            }
+        }else{
+            list = (List<ParsedItem>) executionContext.get(Keys.FILTER_RECORDS);
+        }
+
+        list.add(parsedItem);
     }
 
     private boolean isValidByIDCardCheck(ParsedItem item, String idcardColumns) {

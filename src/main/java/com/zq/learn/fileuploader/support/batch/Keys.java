@@ -24,4 +24,9 @@ public class Keys {
      */
     public static final String ID_CARD_COLUMNS = KEY_PREFIX + "idcard.columns";
 
+    /**
+     * 过滤记录数
+     */
+    public static final String FILTER_RECORDS = KEY_PREFIX + "filter.records";
+
 }

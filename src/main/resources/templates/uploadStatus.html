@@ -15,14 +15,25 @@
     <ul id="normal">
         <li th:each="entry : ${res.result.normalFiles}">
             <div th:id="${entry.value}">
-                <label th:text="${'文件(' + entry.key + ')'}">文件名:</label>
+                <label th:text="${'文件(' + entry.key + '),key=' + entry.value}">文件名:</label>
                 <div style="margin-left: 30px;">
                     <label>上传进度-</label>
-                    <label>读取记录数:<span role="curRecord">*</span></label>
+                    <label>读取记录数:<span role="curCount">*</span></label>
+                    <label>过滤记录数:<span role="filterCount">*</span></label>
                     <label>写入录数:<span role="writeCount">*</span></label>
                     <span role="status" style="margin-left: 5px;">
                         <img style="width: 15px;" src="/static/images/loading.gif" alt="加载中" />
                     </span>
+                </div>
+                <div class="panel panel-default" role="filterRecords" style="display: none;">
+                    <div class="panel-heading">过滤记录信息</div>
+                    <div class="panel-body">
+                    </div>
+                </div>
+                <div class="panel panel-danger" role="exceptionInfo" style="display: none;">
+                    <div class="panel-heading">异常信息</div>
+                    <div class="panel-body">
+                    </div>
                 </div>
             </div>
         </li>
@@ -40,7 +51,7 @@
             $.get("/uploadProgress/" + groupKey,function(data){
                 var complete = false;
                 if(data) {
-                    if(data.status == 'COMPLETED'){
+                    if(data.status == 'Complete'){
                         complete = true;
                     }
                     var filesProcessResult = data.filesProcessResult;
@@ -65,15 +76,44 @@
             var fileProcess = filesProcessResult[fileKey];
 
             if(fileProcess.readCount != null){
-                $fileInfo.find('[role="curRecord"]').text(fileProcess.readCount);
+                $fileInfo.find('[role="curCount"]').text(fileProcess.readCount);
+            }
+
+            if(fileProcess.filterCount != null){
+                $fileInfo.find('[role="filterCount"]').text(fileProcess.filterCount);
             }
 
             if(fileProcess.writeCount != null){
                 $fileInfo.find('[role="writeCount"]').text(fileProcess.writeCount);
             }
 
-            if(fileProcess.status == 'COMPLETED'){
+            if(fileProcess.filterRecords && fileProcess.filterRecords.length > 0){
+                var filterRecords = [];
+                $.each(fileProcess.filterRecords,function(i,filterRecord){
+                    var record = ['<p>',(i + 1),'、'];
+                    $.each(filterRecord.keyValueList,function(i,keyValue){
+                        record.push(keyValue.key + '=' + keyValue.value + ', ');
+                    });
+                    record.push('</p>');
+                    filterRecords.push(record.join(''));
+                });
+
+                $fileInfo.find('[role="filterRecords"]').show().find(".panel-body").html(filterRecords.join('')).show();
+            }
+
+            if(fileProcess.error){
+                var exceptionList = [];
+                $.each(fileProcess.errorMsgList,function(i,errorInfo){
+                    exceptionList.push('<p>'+(i + 1) + '、' + errorInfo + '</p>');
+                });
+
+                $fileInfo.find('[role="exceptionInfo"]').show().find(".panel-body").html(exceptionList.join('')).show();
+            }
+
+            if(fileProcess.status == 'Complete'){
                 $fileInfo.find('[role="status"]').html('<span class="glyphicon glyphicon-ok" aria-hidden="true" style="color: #286090"></span>');
+            }else if(fileProcess.status == 'Failed'){
+                $fileInfo.find('[role="status"]').html('<span class="glyphicon glyphicon-remove" aria-hidden="true" style="color: #ff4a54"></span>');
             }
         }
     }

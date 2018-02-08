@@ -61,6 +61,10 @@ public class ParsedItem {
         return keyValueList.get(index);
     }
 
+    public List<KeyValue<String, String>> getKeyValueList() {
+        return keyValueList;
+    }
+
     @Override
     public String toString() {
         return keyValueList.toString();

@@ -2,7 +2,7 @@ package com.zq.learn.fileuploader.support.batch.model;
 
 import org.springframework.util.CollectionUtils;
 
-import java.io.Serializable;
+import java.io.*;
 import java.util.*;
 
 /**
@@ -45,21 +45,50 @@ public class BatchExceptionInfo implements Serializable{
         return count;
     }
 
-    public String getExceptionInfo(){
-        StringBuilder builder = new StringBuilder();
+    public List<String> getExceptionMessageList(){
+        List<String> list = new ArrayList<>();
 
         if (!CollectionUtils.isEmpty(chunkExceptionContextList)) {
             for (ChunkExceptionContext chunkExceptionContext : chunkExceptionContextList) {
                 List<Exception> exceptionList = chunkExceptionContext.getExceptionList();
                 if (!CollectionUtils.isEmpty(exceptionList)) {
                     for (Exception exception : exceptionList) {
-                        builder.append(exception.getMessage()).append("\n");
+                        list.add(exception.getMessage());
                     }
                 }
             }
         }
 
-        return builder.toString();
+        return list;
+    }
+
+    /**
+     * 获取完整的异常信息
+     * @return
+     */
+    public String getStackTraceInfo(){
+        if (!CollectionUtils.isEmpty(chunkExceptionContextList)) {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            PrintWriter pw = new PrintWriter(new BufferedOutputStream(out));
+
+            for (ChunkExceptionContext chunkExceptionContext : chunkExceptionContextList) {
+                Map<String, Object> context = chunkExceptionContext.getContext();
+                pw.println("上下文信息:" + context.toString());
+                pw.println("=============begin=========================");
+
+                List<Exception> exceptionList = chunkExceptionContext.getExceptionList();
+                if (!CollectionUtils.isEmpty(exceptionList)) {
+                    for (Exception exception : exceptionList) {
+                        exception.printStackTrace(pw);
+                    }
+                }
+                pw.println("=============end=========================");
+            }
+
+            return new String(out.toByteArray());
+        }
+
+        return "";
     }
 
     public boolean isEmpty(){

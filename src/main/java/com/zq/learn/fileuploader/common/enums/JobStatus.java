@@ -7,7 +7,7 @@ import org.springframework.batch.core.BatchStatus; /**
  * @create 2018/2/7
  **/
 public enum JobStatus {
-    Starting(0),Complete(1),Failed(2),Exception(3);
+    Unknow(-1),Starting(0),Complete(1),Failed(2),Exception(3);
 
     private int code;
 
@@ -20,7 +20,7 @@ public enum JobStatus {
     }
 
     public static JobStatus parse(BatchStatus status) {
-        JobStatus jobStatus = null;
+        JobStatus jobStatus = Unknow;
         switch (status) {
             case COMPLETED:
                 jobStatus = JobStatus.Complete;
@@ -35,8 +35,9 @@ public enum JobStatus {
             case ABANDONED:
             case STOPPED:
             case STOPPING:
-            case UNKNOWN:
                 jobStatus = JobStatus.Exception;
+                break;
+            case UNKNOWN:
                 break;
         }
 

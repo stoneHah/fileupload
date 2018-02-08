@@ -10,7 +10,10 @@
 		<result column="job_end_time" property="jobEndTime" />
 		<result column="read_count" property="readCount" />
 		<result column="write_count" property="writeCount" />
+		<result column="filter_count" property="filterCount" />
+		<result column="skip_count" property="skipCount" />
 		<result column="failed_message" property="failedMessage" />
+		<result column="filtered_message" property="filteredMessage" />
 		<result column="status" property="status" />
 		<result column="update_time" property="updateTime" />
 	</resultMap>

@@ -3,8 +3,10 @@ package com.zq.learn.fileuploader.support.batch;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.zq.learn.fileuploader.support.batch.listener.DBWriterListener;
 import com.zq.learn.fileuploader.support.batch.listener.JobCompletionNotificationListener;
+import com.zq.learn.fileuploader.support.batch.listener.StepCompletionNotificationListener;
 import com.zq.learn.fileuploader.support.batch.model.ParsedItem;
 import com.zq.learn.fileuploader.support.batch.policy.DBWriterSkipper;
+import com.zq.learn.fileuploader.support.batch.processor.ParsedItemProcessor;
 import com.zq.learn.fileuploader.support.batch.reader.ExcelEventItemReader;
 import com.zq.learn.fileuploader.support.batch.reader.ExcelEventItemReader.RowMapper;
 import com.zq.learn.fileuploader.support.batch.reader.ParsedItemReader;
@@ -13,6 +15,7 @@ import com.zq.learn.fileuploader.support.batch.writer.CustomerJdbcBatchItemWrite
 import org.apache.poi.ss.usermodel.Cell;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.StepExecutionListener;
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.configuration.annotation.JobBuilderFactory;
 import org.springframework.batch.core.configuration.annotation.StepBuilderFactory;
@@ -20,6 +23,7 @@ import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.launch.support.SimpleJobLauncher;
+import org.springframework.batch.core.listener.StepExecutionListenerSupport;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.skip.AlwaysSkipItemSkipPolicy;
 import org.springframework.batch.core.step.skip.SkipPolicy;
@@ -121,12 +125,25 @@ public class BatchConfiguration {
 
     @Bean
     @StepScope
+    public ParsedItemProcessor itemProcessor(){
+        return new ParsedItemProcessor();
+    }
+
+
+    @Bean
+    @StepScope
     public CustomerJdbcBatchItemWriter writer(@Value("#{jobParameters['tableName']}") String tableName) {
         JdbcBatchItemWriter delegate = new JdbcBatchItemWriter();
 
         CustomerJdbcBatchItemWriter writer = new CustomerJdbcBatchItemWriter(delegate,tableName);
         writer.setDataSource(dataSource);
         return writer;
+    }
+
+    @Bean
+    @StepScope
+    public StepExecutionListener stepCompletionNotificationListener(){
+        return new StepCompletionNotificationListener();
     }
 
     @Bean
@@ -144,9 +161,9 @@ public class BatchConfiguration {
         return stepBuilderFactory.get(JobNameFactory.STEP_CSV_TO_DB)
                 .<ParsedItem, ParsedItem> chunk(3000)
                 .reader(csvItemReader(null))
-//                .listener()
-//                .processor(processor())
+                .processor(itemProcessor())
                 .writer(writer(null))
+                .listener(stepCompletionNotificationListener())
                 .build();
     }
 
@@ -165,7 +182,7 @@ public class BatchConfiguration {
         return stepBuilderFactory.get(JobNameFactory.STEP_EXCEL_XLSX_TO_DB)
                 .<ParsedItem, ParsedItem>chunk(3000)
                 .reader(excelItemStreamReader(null))
-//                .processor(processor())
+                .processor(itemProcessor())
                 .writer(writer(null))
 //                .faultTolerant()
 //                .skipPolicy(new AlwaysSkipItemSkipPolicy())
@@ -188,7 +205,7 @@ public class BatchConfiguration {
         return stepBuilderFactory.get(JobNameFactory.STEP_EXCEL_XLS_TO_DB)
                 .<ParsedItem, ParsedItem>chunk(3000)
                 .reader(excelItemReader(null))
-//                .processor(processor())
+                .processor(itemProcessor())
                 .writer(writer(null))
                 /*.faultTolerant()
                 .skip(SQLException.class)
