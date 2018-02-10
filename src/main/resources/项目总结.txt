@@ -1,0 +1,4 @@
+一条sql执行的包大小的设置
+set global max_allowed_packet = 2*1024*1024*10然后退出命令行，重启mysql服务，再进入。（这里设置的是20M大小）
+
+show VARIABLES like '%max_allowed_packet%';查看下max_allowed_packet是否编辑成功

@@ -1,12 +1,15 @@
 package com.zq.learn.fileuploader.support.batch.reader;
 
 import com.zq.learn.fileuploader.support.batch.model.ParsedItem;
+import org.mozilla.universalchardet.UniversalDetector;
 import org.springframework.batch.item.file.FlatFileItemReader;
 import org.springframework.batch.item.file.mapping.DefaultLineMapper;
 import org.springframework.batch.item.file.transform.DelimitedLineTokenizer;
 import org.springframework.core.io.Resource;
 import org.springframework.util.StringUtils;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -25,7 +28,11 @@ public class ParsedItemReader extends FlatFileItemReader<ParsedItem> {
     public ParsedItemReader(Resource resource) {
         setResource(resource);
         setLinesToSkip(1);
-        setEncoding("gbk");
+        String encode = detectedEncoding(resource);
+        if (StringUtils.hasText(encode)) {
+            setEncoding(encode);
+        }
+//        setEncoding("gbk");
 
         setLineMapper(new DefaultLineMapper<ParsedItem>() {{
             setLineTokenizer(new DelimitedLineTokenizer());
@@ -38,6 +45,35 @@ public class ParsedItemReader extends FlatFileItemReader<ParsedItem> {
                 return parseItem;
             });
         }});
+    }
+
+    private String detectedEncoding(Resource resource) {
+        String encode = null;
+        byte[] buf = new byte[4096];
+        InputStream fis = null;
+        try {
+            fis = resource.getInputStream();
+            // (1)
+            UniversalDetector detector = new UniversalDetector(null);
+
+            // (2)
+            int nread;
+            while ((nread = fis.read(buf)) > 0 && !detector.isDone()) {
+                detector.handleData(buf, 0, nread);
+            }
+            // (3)
+            detector.dataEnd();
+
+            // (4)
+            encode = detector.getDetectedCharset();
+
+            // (5)
+            detector.reset();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return encode == null ? "gbk" : encode;
     }
 
     private String cleanValue(String value) {
