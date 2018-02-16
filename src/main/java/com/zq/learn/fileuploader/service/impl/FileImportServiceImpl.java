@@ -238,9 +238,8 @@ public class FileImportServiceImpl implements IFileImportService {
         result.setWriteCount(stepExecution.getWriteCount() - errorCount);
         result.setStatus(JobStatus.parse(stepExecution.getStatus()));
 
-        if (stepExecution.getEndTime() != null) {
-            result.setTimeConsume(stepExecution.getEndTime().getTime() - stepExecution.getStartTime().getTime());
-        }
+        Date curTime = stepExecution.getEndTime() != null ? stepExecution.getEndTime() : new Date();
+        result.setTimeConsume(curTime.getTime() - stepExecution.getStartTime().getTime());
 
         if (result.getFilterCount() > 0) {
             result.setFilterRecords((List<ParsedItem>) stepExecution.getExecutionContext().get(Keys.FILTER_RECORDS));
