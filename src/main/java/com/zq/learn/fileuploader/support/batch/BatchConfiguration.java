@@ -7,6 +7,7 @@ import com.zq.learn.fileuploader.support.batch.listener.StepCompletionNotificati
 import com.zq.learn.fileuploader.support.batch.model.ParsedItem;
 import com.zq.learn.fileuploader.support.batch.policy.DBWriterSkipper;
 import com.zq.learn.fileuploader.support.batch.processor.ParsedItemProcessor;
+import com.zq.learn.fileuploader.support.batch.reader.CSVItemReader;
 import com.zq.learn.fileuploader.support.batch.reader.ExcelEventItemReader;
 import com.zq.learn.fileuploader.support.batch.reader.ExcelEventItemReader.RowMapper;
 import com.zq.learn.fileuploader.support.batch.reader.ParsedItemReader;
@@ -76,8 +77,8 @@ public class BatchConfiguration {
 
     @Bean
     @StepScope
-    public FlatFileItemReader<ParsedItem> csvItemReader(@Value("#{jobParameters['resource']}") Resource resource) {
-        return new ParsedItemReader(resource);
+    public CSVItemReader csvItemReader(@Value("#{jobParameters['resource']}") Resource resource) {
+        return new CSVItemReader(resource);
     }
 
     @Bean

@@ -25,10 +25,12 @@ public class ParsedItemReader extends FlatFileItemReader<ParsedItem> {
     public static final String[] columns = StringUtils.commaDelimitedListToStringArray(
             "A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z,AA,AB,AC,AD,AE,AF,AG,AH,AI,AJ,AK,AL,AM");
 
+    protected String encode;
+
     public ParsedItemReader(Resource resource) {
         setResource(resource);
         setLinesToSkip(1);
-        String encode = detectedEncoding(resource);
+        encode = detectedEncoding(resource);
         if (StringUtils.hasText(encode)) {
             setEncoding(encode);
         }
@@ -47,7 +49,7 @@ public class ParsedItemReader extends FlatFileItemReader<ParsedItem> {
         }});
     }
 
-    private String detectedEncoding(Resource resource) {
+    protected String detectedEncoding(Resource resource) {
         String encode = null;
         byte[] buf = new byte[4096];
         InputStream fis = null;
@@ -76,7 +78,7 @@ public class ParsedItemReader extends FlatFileItemReader<ParsedItem> {
         return encode == null ? "gbk" : encode;
     }
 
-    private String cleanValue(String value) {
+    protected String cleanValue(String value) {
         if (StringUtils.isEmpty(value)) {
             return "";
         }
@@ -87,5 +89,9 @@ public class ParsedItemReader extends FlatFileItemReader<ParsedItem> {
         }
 
         return value;
+    }
+
+    public String getEncode() {
+        return encode;
     }
 }
