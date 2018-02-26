@@ -1,12 +1,16 @@
 package com.zq.learn.fileuploader.service.impl;
 
+import com.baomidou.mybatisplus.plugins.Page;
 import com.zq.learn.fileuploader.common.enums.FileExtension;
 import com.zq.learn.fileuploader.common.enums.JobStatus;
 import com.zq.learn.fileuploader.controller.dto.FileImportContext;
 import com.zq.learn.fileuploader.exception.FileImportException;
+import com.zq.learn.fileuploader.persistence.dao.FileImportExecutionMapper;
 import com.zq.learn.fileuploader.persistence.dao.FileImportInfoMapper;
+import com.zq.learn.fileuploader.persistence.model.FileImportExecution;
 import com.zq.learn.fileuploader.persistence.model.FileImportInfo;
 import com.zq.learn.fileuploader.service.IFileImportService;
+import com.zq.learn.fileuploader.service.model.FileImportInfoSupport;
 import com.zq.learn.fileuploader.support.batch.JobFactory;
 import com.zq.learn.fileuploader.support.batch.JobNameFactory;
 import com.zq.learn.fileuploader.support.batch.Keys;
@@ -54,6 +58,9 @@ public class FileImportServiceImpl implements IFileImportService {
 
     @Autowired
     private FileImportInfoMapper fileImportInfoMapper;
+
+    @Autowired
+    private FileImportExecutionMapper fileImportExecutionMapper;
 
     @Autowired
     private JobLauncher jobLauncher;
@@ -248,16 +255,58 @@ public class FileImportServiceImpl implements IFileImportService {
         return result;
     }
 
-    private String getFilterRecords(List<ParsedItem> list) {
-        StringBuilder builder = new StringBuilder();
+    @Override
+    public List<FileImportInfoSupport> getFileImportInfos(String fileName, Date startTime, Date endTime, Page page) {
+        List<FileImportInfoSupport> result = null;
 
-        if (!CollectionUtils.isEmpty(list)) {
-            for (ParsedItem parsedItem : list) {
-                builder.append(parsedItem.toString()).append("\n");
+        List<FileImportInfo> fileImportInfos = fileImportInfoMapper.getFileImportInfos(fileName,startTime,endTime,page);
+        if (!CollectionUtils.isEmpty(fileImportInfos)) {
+            result = new ArrayList<>();
+
+            Set<String> fileKeys = new HashSet<>();
+            for (FileImportInfo fileImportInfo : fileImportInfos) {
+                result.add(convert(fileImportInfo));
+                fileKeys.add(fileImportInfo.getFileKey());
             }
+
+            List<FileImportExecution> executionList = fileImportExecutionMapper.getFileImportExecutions(fileKeys.toArray(new String[fileKeys.size()]));
+            fillExecutionData(result,executionList);
         }
 
-        return builder.toString();
+        return result == null ? new ArrayList<>() : result;
+    }
+
+    private void fillExecutionData(List<FileImportInfoSupport> list, List<FileImportExecution> executionList) {
+        if (CollectionUtils.isEmpty(executionList)) {
+            return;
+        }
+
+        Map<String, FileImportExecution> map = new HashMap<>();
+        for (FileImportExecution execution : executionList) {
+            map.put(execution.getFileKey(), execution);
+        }
+
+        for (FileImportInfoSupport infoSupport : list) {
+            String fileKey = infoSupport.getFileKey();
+            FileImportExecution execution = map.get(fileKey);
+            if (execution != null) {
+                infoSupport.setJobStartTime(execution.getJobStartTime());
+                infoSupport.setJobEndTime(execution.getJobEndTime());
+                infoSupport.setReadCount(execution.getReadCount());
+                infoSupport.setWriteCount(execution.getWriteCount());
+                infoSupport.setFilterCount(execution.getFilterCount());
+            }
+        }
+    }
+
+    private FileImportInfoSupport convert(FileImportInfo fileImportInfo) {
+        FileImportInfoSupport support = new FileImportInfoSupport();
+
+        support.setFileName(fileImportInfo.getFileName());
+        support.setFileKey(fileImportInfo.getFileKey());
+        support.setImportTime(fileImportInfo.getUpdateTime());
+        support.setTableName(fileImportInfo.getTableName());
+        return support;
     }
 
     public static void main(String[] args) {

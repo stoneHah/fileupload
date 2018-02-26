@@ -1,10 +1,13 @@
 package com.zq.learn.fileuploader.controller;
 
+import com.baomidou.mybatisplus.plugins.Page;
 import com.zq.learn.fileuploader.controller.dto.FileImportContext;
 import com.zq.learn.fileuploader.controller.dto.FileUploadResult;
+import com.zq.learn.fileuploader.controller.dto.ListResponse;
 import com.zq.learn.fileuploader.controller.dto.Response;
 import com.zq.learn.fileuploader.service.IFileImportService;
 import com.zq.learn.fileuploader.service.IFileImportService.GroupFileProcessResult;
+import com.zq.learn.fileuploader.service.model.FileImportInfoSupport;
 import com.zq.learn.fileuploader.utils.IdGenerator;
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
@@ -14,6 +17,7 @@ import org.apache.commons.fileupload.util.Streams;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.convert.ConversionService;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -131,6 +135,30 @@ public class FileUploadController {
     @ResponseBody
     public GroupFileProcessResult getUploadProgress(@PathVariable("groupKey") String groupKey){
         return fileImportService.getFilesProcessResult(groupKey);
+    }
+
+    /**
+     * 获取文件导入信息
+     * @param fileName
+     * @param startTime
+     * @param endTime
+     * @param offset
+     * @param pageSize
+     * @return
+     */
+    @GetMapping("/fileImportInfos")
+    @ResponseBody
+    public ListResponse getFileImportInfos(@RequestParam(value = "fileName",required = false) String fileName,
+                                           @RequestParam(value = "startTime",required = false)@DateTimeFormat(pattern="yyyy-MM-dd") Date startTime,
+                                           @RequestParam(value = "endTime",required = false) @DateTimeFormat(pattern="yyyy-MM-dd")Date endTime,
+                                           @RequestParam(value = "offset",required = false,defaultValue = "0") Integer offset,
+                                           @RequestParam(value = "limit",required = false,defaultValue = "10") Integer pageSize){
+        int pageNum = offset % pageSize == 0 ? offset / pageSize : (offset / pageSize + 1);
+        Page page = new Page(pageNum + 1, pageSize);
+        List<FileImportInfoSupport> fileImportInfos = fileImportService.getFileImportInfos(fileName, startTime, endTime, page);
+        page.setRecords(fileImportInfos);
+
+        return new ListResponse(page);
     }
 
     public static void main(String[] args) {

@@ -1,13 +1,16 @@
 package com.zq.learn.fileuploader.service;
 
+import com.baomidou.mybatisplus.plugins.Page;
 import com.zq.learn.fileuploader.common.enums.JobStatus;
 import com.zq.learn.fileuploader.controller.dto.FileImportContext;
 import com.zq.learn.fileuploader.exception.FileImportException;
 import com.zq.learn.fileuploader.persistence.model.FileImportInfo;
+import com.zq.learn.fileuploader.service.model.FileImportInfoSupport;
 import com.zq.learn.fileuploader.support.batch.model.ParsedItem;
 import org.springframework.batch.core.BatchStatus;
 
 import java.io.InputStream;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -36,6 +39,16 @@ public interface IFileImportService {
      * @return
      */
     GroupFileProcessResult getFilesProcessResult(String groupKey);
+
+    /**
+     * 获取文件导入信息
+     * @param fileName
+     * @param startTime
+     * @param endTime
+     * @param page
+     * @return
+     */
+    List<FileImportInfoSupport> getFileImportInfos(String fileName, Date startTime, Date endTime, Page page);
 
     public static class GroupFileProcessResult{
         public static final GroupFileProcessResult EMPTY = new GroupFileProcessResult();

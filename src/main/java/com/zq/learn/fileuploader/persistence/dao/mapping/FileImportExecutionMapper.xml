@@ -18,4 +18,23 @@
 		<result column="update_time" property="updateTime" />
 	</resultMap>
 
+	<sql id="No_Blob_Column_List" >
+		id,file_key,job_start_time,job_end_time,read_count,write_count,filter_count,skip_count,status,update_time
+	</sql>
+
+	<select id="getFileImportExecutions" resultMap="BaseResultMap">
+		SELECT
+		<include refid="No_Blob_Column_List" />
+		from file_import_execution WHERE 1=1
+		<if test="fileKeys !=null and fileKeys.length > 0">
+			and file_key  in
+			<foreach collection="fileKeys" item="item" open="("
+					 close=")" separator=",">
+				#{item}
+			</foreach>
+		</if>
+		<if test="fileKeys == null or fileKeys.length == 0">
+			and 1=0
+		</if>
+	</select>
 </mapper>
