@@ -14,9 +14,27 @@
           rel="stylesheet" type="text/css" />
     <link href="/static/css/bootstrap-table.css"
           rel="stylesheet" type="text/css" />
+    <link href="/static/css/daterangepicker.css"
+          rel="stylesheet" type="text/css" />
     <script type="application/javascript" src="/static/js/jquery.min.js"></script>
     <script type="application/javascript" src="/static/js/bootstrap_table/bootstrap-table.js"></script>
     <script type="application/javascript" src="/static/js/bootstrap_table/locale/bootstrap-table-zh-CN.js"></script>
+    <script type="application/javascript" src="/static/js/bootstrap-daterangepicker/moment.js"></script>
+    <script type="application/javascript" src="/static/js/bootstrap-daterangepicker/daterangepicker.js"></script>
+
+    <style>
+        .my-input{
+            position: relative;
+        }
+        .my-input i {
+            position: absolute;
+            bottom: 10px;
+            right: 14px;
+            top: auto;
+            cursor: pointer;
+        }
+
+    </style>
 </head>
 
 <body>
@@ -61,6 +79,25 @@
             </div>
             <div class="col-sm-8">
                 <h4>导入历史记录</h4>
+                <div class="form-inline">
+                    <div class="btn-group">文件名：</div>
+                    <input type="text" id="fileName" name="date" style="width: 130px"
+                           class="form-control" value="" />
+                    <div class="form-group">
+                        &nbsp;选择日期
+                    </div>
+                    <div class="form-group" id="divDate">
+                        <div class="input-prepend my-input" style="width: 210px" name="selDaysDiv" id="selDaysDiv">
+                            <input type="text" readonly="" name="selDays" id="selDays" style="width: 210px" class="form-control" value="" />
+                            <i class="glyphicon glyphicon-calendar fa fa-calendar"></i>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <button id="btnSearch" class="btn btn-success" type="button">
+                            <i class="fa fa-search"></i>&nbsp;&nbsp;查 询
+                        </button>
+                    </div>
+                </div>
                 <div class="table-responsive" id="static_table" style="margin-top: 10px;min-height:540px;">
                     <table id="his_table">
                     </table>
@@ -69,16 +106,15 @@
         </div>
     </div>
 
-    <!--<form method="POST" action="/upload" enctype="multipart/form-data">
-        <label>表名:</label><input type="text" name="table"/>
-        <input type="file" name="file" multiple="multiple"/><br/><br/>
-        <input type="submit" value="Submit" />
-    </form>-->
 
 </body>
 
 <script th:inline="javascript">
     /*<![CDATA[*/
+    var curDate = new Date(),
+        pre7Date = new Date(curDate.getTime() - 6 * 24 * 3600 * 1000);
+        timeSeparator = '~';
+
     $(function(){
         var $idcardColumnsForm = $('#idcardColumnsForm'),
             $table = $('#his_table');
@@ -89,6 +125,22 @@
                 $idcardColumnsForm.hide();
             }
         });
+
+        $('#btnSearch').click(function(){
+            $table.bootstrapTable('refresh');
+        });
+
+        //初始化时间
+        $('#selDaysDiv').daterangepicker(
+            {
+                "opens": this.opens,
+                "startDate" : curDate,
+                "endDate": curDate,
+                separator : timeSeparator,
+                dateLimit: { days: 31 }
+            }
+        );
+        $('#selDays').val(pre7Date.Format("yyyy-MM-dd") + '~' + curDate.Format("yyyy-MM-dd"));
 
         initTable();
 
@@ -106,6 +158,8 @@
                 pageList: [10,20,50],
                 /* sortSide: 'client', */
                 queryParams: function(params){
+                    var postData = getPostData();
+                    params = $.extend(params,postData);
                     return params;
                 },
                 columns: [
@@ -114,7 +168,7 @@
                         field: 'state',
                         align: 'center',
                         valign: 'middle',
-                        width:'50',
+                        width:'30',
                         formatter: function operateFormatter(value, row, index) {
                             var options = $table.bootstrapTable('getOptions');
                             var page = options.pageNumber,
@@ -126,7 +180,7 @@
                         field: 'tableName',
                         align: 'center',
                         valign: 'middle',
-                        width: '100'
+                        width: '60'
                     },{
                         title: '文件名',
                         field: 'fileName',
@@ -152,7 +206,7 @@
                             return formatMill(value,'yyyy-MM-dd hh:mm:ss');
                         }
                     },{
-                        title: '读取数',
+                        title: '读取数(条)',
                         field: 'readCount',
                         align: 'center',
                         valign: 'middle',
@@ -162,7 +216,7 @@
                         }
                     },
                     {
-                        title: '写入数',
+                        title: '写入数(条)',
                         field: 'writeCount',
                         align: 'center',
                         valign: 'middle',
@@ -171,7 +225,7 @@
                             return formatNum(value);
                         }
                     },{
-                        title: '过滤数',
+                        title: '过滤数(条)',
                         field: 'filterCount',
                         align: 'center',
                         valign: 'middle',
@@ -179,6 +233,18 @@
                         formatter: function (value, row, index) {
                             return formatNum(value);
                         }
+                    },{
+                        title: '异常信息',
+                        field: 'errorMsg',
+                        align: 'center',
+                        valign: 'middle',
+                        width:'100',
+                    },{
+                        title: '执行结果',
+                        field: 'status',
+                        align: 'center',
+                        valign: 'middle',
+                        width:'50'
                     }
                 ]
             }).on('sort.bs.table', function (name,order) {
@@ -188,6 +254,24 @@
             }).on('load-success.bs.table',function(data){
 
             });
+        }
+
+        function getPostData(){
+            var days = $.trim($('#selDays').val());
+            var startDay = null,endDay = null;
+            if(days){
+                var dayAry = days.split(timeSeparator);
+                startDay = dayAry[0];
+                endDay = dayAry[1];
+            }
+
+            var postData = {
+                startTime: startDay,
+                endTime: endDay,
+                fileName: $.trim($('#fileName').val())
+            };
+
+            return postData;
         }
 
         function formatNum(num){

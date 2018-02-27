@@ -21,6 +21,8 @@ public class FileImportInfoSupport {
     private Integer readCount;
     private Integer writeCount;
     private Integer filterCount;
+    private String errorMsg;
+    private String status;
 
     public String getFileName() {
         return fileName;
@@ -92,5 +94,21 @@ public class FileImportInfoSupport {
 
     public void setFilterCount(Integer filterCount) {
         this.filterCount = filterCount;
+    }
+
+    public String getErrorMsg() {
+        return errorMsg;
+    }
+
+    public void setErrorMsg(String errorMsg) {
+        this.errorMsg = errorMsg;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }

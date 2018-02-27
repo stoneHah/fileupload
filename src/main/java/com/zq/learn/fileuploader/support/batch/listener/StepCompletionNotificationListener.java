@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.zq.learn.fileuploader.common.enums.JobStatus;
 import com.zq.learn.fileuploader.persistence.dao.FileImportExecutionMapper;
 import com.zq.learn.fileuploader.persistence.model.FileImportExecution;
+import com.zq.learn.fileuploader.support.batch.FilterDataManager;
 import com.zq.learn.fileuploader.support.batch.Keys;
 import com.zq.learn.fileuploader.support.batch.model.BatchExceptionInfo;
 import com.zq.learn.fileuploader.support.batch.model.ParsedItem;
@@ -29,9 +30,15 @@ public class StepCompletionNotificationListener extends StepExecutionListenerSup
 	@Autowired
 	private FileImportExecutionMapper fileImportExecutionMapper;
 
+	@Autowired
+	private FilterDataManager filterDataManager;
+
 	@Override
 	public ExitStatus afterStep(StepExecution stepExecution) {
 		String fileKey = stepExecution.getJobParameters().getString("fileKey");
+
+		//刷新过滤数据
+		filterDataManager.flush(fileKey);
 
 		FileImportExecution execution = new FileImportExecutionBuilder()
 				.fileKey(fileKey)

@@ -104,7 +104,7 @@ public interface IFileImportService {
         /**
          * 过滤记录
          */
-        private List<ParsedItem> filterRecords;
+        private List<String> filterRecords;
 
         private Long timeConsume = null;
 
@@ -164,11 +164,11 @@ public interface IFileImportService {
             this.errorMsgList = errorMsgList;
         }
 
-        public List<ParsedItem> getFilterRecords() {
+        public List<String> getFilterRecords() {
             return filterRecords;
         }
 
-        public void setFilterRecords(List<ParsedItem> filterRecords) {
+        public void setFilterRecords(List<String> filterRecords) {
             this.filterRecords = filterRecords;
         }
     }

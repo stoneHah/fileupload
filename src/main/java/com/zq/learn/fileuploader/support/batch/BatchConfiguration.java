@@ -126,8 +126,8 @@ public class BatchConfiguration {
 
     @Bean
     @StepScope
-    public ParsedItemProcessor itemProcessor(){
-        return new ParsedItemProcessor();
+    public ParsedItemProcessor itemProcessor(FilterDataManager filterDataManager){
+        return new ParsedItemProcessor(filterDataManager);
     }
 
 
@@ -162,7 +162,7 @@ public class BatchConfiguration {
         return stepBuilderFactory.get(JobNameFactory.STEP_CSV_TO_DB)
                 .<ParsedItem, ParsedItem> chunk(3000)
                 .reader(csvItemReader(null))
-                .processor(itemProcessor())
+                .processor(itemProcessor(null))
                 .writer(writer(null))
                 .listener(stepCompletionNotificationListener())
                 .build();
@@ -183,7 +183,7 @@ public class BatchConfiguration {
         return stepBuilderFactory.get(JobNameFactory.STEP_EXCEL_XLSX_TO_DB)
                 .<ParsedItem, ParsedItem>chunk(3000)
                 .reader(excelItemStreamReader(null))
-                .processor(itemProcessor())
+                .processor(itemProcessor(null))
                 .writer(writer(null))
 //                .faultTolerant()
 //                .skipPolicy(new AlwaysSkipItemSkipPolicy())
@@ -206,7 +206,7 @@ public class BatchConfiguration {
         return stepBuilderFactory.get(JobNameFactory.STEP_EXCEL_XLS_TO_DB)
                 .<ParsedItem, ParsedItem>chunk(3000)
                 .reader(excelItemReader(null))
-                .processor(itemProcessor())
+                .processor(itemProcessor(null))
                 .writer(writer(null))
                 /*.faultTolerant()
                 .skip(SQLException.class)

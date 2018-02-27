@@ -1,5 +1,6 @@
 package com.zq.learn.fileuploader.support.batch.processor;
 
+import com.zq.learn.fileuploader.support.batch.FilterDataManager;
 import com.zq.learn.fileuploader.support.batch.Keys;
 import com.zq.learn.fileuploader.support.batch.model.KeyValue;
 import com.zq.learn.fileuploader.support.batch.model.ParsedItem;
@@ -27,8 +28,16 @@ public class ParsedItemProcessor implements ItemProcessor<ParsedItem,ParsedItem>
 
     private StepExecution stepExecution;
 
+    private FilterDataManager filterDataManager;
+    private String fileKey;
+
+    public ParsedItemProcessor(FilterDataManager filterDataManager) {
+        this.filterDataManager = filterDataManager;
+    }
+
     @BeforeStep
     void beforeStep(StepExecution stepExecution){
+        fileKey = stepExecution.getJobParameters().getString("fileKey");
         this.stepExecution = stepExecution;
     }
 
@@ -51,7 +60,8 @@ public class ParsedItemProcessor implements ItemProcessor<ParsedItem,ParsedItem>
      * @param parsedItem
      */
     private void addFilterRecordToContext(ParsedItem parsedItem) {
-        ExecutionContext executionContext = stepExecution.getExecutionContext();
+        filterDataManager.addFilterData(fileKey,parsedItem);
+        /*ExecutionContext executionContext = stepExecution.getExecutionContext();
 
         List<ParsedItem> list = null;
         if (!executionContext.containsKey(Keys.FILTER_RECORDS)) {
@@ -65,7 +75,7 @@ public class ParsedItemProcessor implements ItemProcessor<ParsedItem,ParsedItem>
             list = (List<ParsedItem>) executionContext.get(Keys.FILTER_RECORDS);
         }
 
-        list.add(parsedItem);
+        list.add(parsedItem);*/
     }
 
     private boolean isValidByIDCardCheck(ParsedItem item, String idcardColumns) {

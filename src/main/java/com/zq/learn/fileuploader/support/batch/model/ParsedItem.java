@@ -4,6 +4,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 import sun.swing.plaf.synth.DefaultSynthStyle.StateInfo;
 
+import java.beans.Transient;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -41,6 +42,7 @@ public class ParsedItem {
         return value;
     }
 
+    @Transient
     public boolean isEmpty() {
         return CollectionUtils.isEmpty(keyValueList);
     }

@@ -5,6 +5,12 @@
           rel="stylesheet" type="text/css" />
     <link href="/static/css/font-awesome.min.css"
           rel="stylesheet" type="text/css" />
+    <style>
+        .panel-body{
+            height: 500px;
+            overflow: auto;
+        }
+    </style>
 </head>
 <body>
 
@@ -90,8 +96,13 @@
             if(fileProcess.filterRecords && fileProcess.filterRecords.length > 0){
                 var filterRecords = [];
                 $.each(fileProcess.filterRecords,function(i,filterRecord){
+                    if(i >= 150){
+                        filterRecords.push('<p>...</p>');
+                        return false;
+                    }
                     var record = ['<p>',(i + 1),'、'];
-                    $.each(filterRecord.keyValueList,function(i,keyValue){
+                    var info = JSON.parse(filterRecord);
+                    $.each(info.keyValueList,function(i,keyValue){
                         record.push(keyValue.key + '=' + keyValue.value + ', ');
                     });
                     record.push('</p>');

@@ -16,14 +16,14 @@
 
 	<select id="getFileImportInfos" resultMap="BaseResultMap">
 		SELECT * from file_import_info WHERE 1=1
-		<if test="fileName != null">
+		<if test="fileName != null and fileName != ''">
 			and file_name like CONCAT('%',#{fileName},'%')
 		</if>
 		<if test="startTime != null">
 			and update_time >= #{startTime}
 		</if>
 		<if test="endTime != null">
-			and update_time &lt; #{startTime}
+			and update_time &lt; #{endTime}
 		</if>
 		ORDER BY update_time DESC
 	</select>

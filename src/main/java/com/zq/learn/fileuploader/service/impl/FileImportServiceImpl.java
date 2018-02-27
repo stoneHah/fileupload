@@ -11,6 +11,7 @@ import com.zq.learn.fileuploader.persistence.model.FileImportExecution;
 import com.zq.learn.fileuploader.persistence.model.FileImportInfo;
 import com.zq.learn.fileuploader.service.IFileImportService;
 import com.zq.learn.fileuploader.service.model.FileImportInfoSupport;
+import com.zq.learn.fileuploader.support.batch.FilterDataManager;
 import com.zq.learn.fileuploader.support.batch.JobFactory;
 import com.zq.learn.fileuploader.support.batch.JobNameFactory;
 import com.zq.learn.fileuploader.support.batch.Keys;
@@ -19,6 +20,7 @@ import com.zq.learn.fileuploader.support.batch.model.ParsedItem;
 import com.zq.learn.fileuploader.utils.IdGenerator;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.ArrayUtils;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.batch.core.*;
@@ -61,6 +63,9 @@ public class FileImportServiceImpl implements IFileImportService {
 
     @Autowired
     private FileImportExecutionMapper fileImportExecutionMapper;
+
+    @Autowired
+    private FilterDataManager filterDataManager;
 
     @Autowired
     private JobLauncher jobLauncher;
@@ -240,8 +245,10 @@ public class FileImportServiceImpl implements IFileImportService {
             }
         }
 
-        result.setReadCount(stepExecution.getReadCount());
-        result.setFilterCount(stepExecution.getFilterCount());
+        int readCount = stepExecution.getReadCount();
+        result.setReadCount(readCount);
+        int filterCount = filterDataManager.countFilterData(fileKey);
+        result.setFilterCount(filterCount > readCount ? readCount : filterCount);
         result.setWriteCount(stepExecution.getWriteCount() - errorCount);
         result.setStatus(JobStatus.parse(stepExecution.getStatus()));
 
@@ -249,7 +256,7 @@ public class FileImportServiceImpl implements IFileImportService {
         result.setTimeConsume(curTime.getTime() - stepExecution.getStartTime().getTime());
 
         if (result.getFilterCount() > 0) {
-            result.setFilterRecords((List<ParsedItem>) stepExecution.getExecutionContext().get(Keys.FILTER_RECORDS));
+            result.setFilterRecords(filterDataManager.moreFilterData(fileKey));
         }
 
         return result;
@@ -259,6 +266,9 @@ public class FileImportServiceImpl implements IFileImportService {
     public List<FileImportInfoSupport> getFileImportInfos(String fileName, Date startTime, Date endTime, Page page) {
         List<FileImportInfoSupport> result = null;
 
+        if (endTime != null) {
+            endTime = new DateTime(endTime).plusDays(1).toDate();
+        }
         List<FileImportInfo> fileImportInfos = fileImportInfoMapper.getFileImportInfos(fileName,startTime,endTime,page);
         if (!CollectionUtils.isEmpty(fileImportInfos)) {
             result = new ArrayList<>();
@@ -295,6 +305,8 @@ public class FileImportServiceImpl implements IFileImportService {
                 infoSupport.setReadCount(execution.getReadCount());
                 infoSupport.setWriteCount(execution.getWriteCount());
                 infoSupport.setFilterCount(execution.getFilterCount());
+                infoSupport.setStatus(JobStatus.getByCode(execution.getStatus()).getDesc());
+                infoSupport.setErrorMsg(execution.getFailedMessage());
             }
         }
     }
