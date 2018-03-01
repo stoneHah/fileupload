@@ -26,6 +26,6 @@ public interface FileImportInfoMapper extends BaseMapper<FileImportInfo> {
      * @param page
      * @return
      */
-    List<FileImportInfo> getFileImportInfos(@Param("fileName") String fileName, @Param("startTime")Date startTime,
-                                            @Param("endTime")Date endTime, Page page);
+    List<FileImportInfo> getFileImportInfos(@Param("fileName") String fileName,@Param("tableDesc") String tableDesc,
+                                            @Param("startTime")Date startTime,@Param("endTime")Date endTime, Page page);
 }

@@ -5,6 +5,7 @@ import com.zq.learn.fileuploader.common.enums.JobStatus;
 import com.zq.learn.fileuploader.controller.dto.FileImportContext;
 import com.zq.learn.fileuploader.exception.FileImportException;
 import com.zq.learn.fileuploader.persistence.model.FileImportInfo;
+import com.zq.learn.fileuploader.persistence.model.FileTableInfo;
 import com.zq.learn.fileuploader.service.model.FileImportInfoSupport;
 import com.zq.learn.fileuploader.support.batch.model.ParsedItem;
 import org.springframework.batch.core.BatchStatus;
@@ -48,7 +49,13 @@ public interface IFileImportService {
      * @param page
      * @return
      */
-    List<FileImportInfoSupport> getFileImportInfos(String fileName, Date startTime, Date endTime, Page page);
+    List<FileImportInfoSupport> getFileImportInfos(String fileName,String fileDesc, Date startTime, Date endTime, Page page);
+
+    /**
+     * 保存文件表信息
+     * @param fileTableInfo
+     */
+    void saveFileTableInfo(FileTableInfo fileTableInfo);
 
     public static class GroupFileProcessResult{
         public static final GroupFileProcessResult EMPTY = new GroupFileProcessResult();

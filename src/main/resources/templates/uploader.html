@@ -17,6 +17,7 @@
     <link href="/static/css/daterangepicker.css"
           rel="stylesheet" type="text/css" />
     <script type="application/javascript" src="/static/js/jquery.min.js"></script>
+    <script type="application/javascript" src="/static/js/bootstrap.min.js"></script>
     <script type="application/javascript" src="/static/js/bootstrap_table/bootstrap-table.js"></script>
     <script type="application/javascript" src="/static/js/bootstrap_table/locale/bootstrap-table-zh-CN.js"></script>
     <script type="application/javascript" src="/static/js/bootstrap-daterangepicker/moment.js"></script>
@@ -40,16 +41,22 @@
 <body>
     <div class="container-fluid" style="margin-top: 40px;">
         <div class="row">
-            <div class="col-sm-4">
+            <div class="col-sm-3">
                 <form class="form-horizontal" method="POST" action="/upload" enctype="multipart/form-data">
                     <div class="form-group">
                         <label for="table" class="col-sm-2 control-label">表名</label>
-                        <div class="col-sm-5">
+                        <div class="col-sm-6">
                             <input type="text" class="form-control" id="table" name="table" placeholder="表名" />
                         </div>
                     </div>
                     <div class="form-group">
-                        <div class="col-sm-offset-2 col-sm-5">
+                        <label for="tableDesc" class="col-sm-2 control-label">表描述信息</label>
+                        <div class="col-sm-6">
+                            <textarea class="form-control" id="tableDesc" name="tableDesc" placeholder="表描述信息" />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div class="col-sm-offset-2 col-sm-6">
                             <div class="checkbox">
                                 <label>
                                     <input type="checkbox" name="validateIDCard" id="validateIDCard" value="true"/> 开启身份证验证
@@ -59,14 +66,14 @@
                     </div>
                     <div id="idcardColumnsForm" class="form-group" for="validateIDCard" style="display: none;">
                         <label for="idcardColumns" class="col-sm-2 control-label">身份证列号</label>
-                        <div class="col-sm-5">
+                        <div class="col-sm-6">
                             <input type="text" class="form-control" name="idcardColumns" id="idcardColumns" placeholder="身份证列号" />
                             <span id="helpBlock2" class="help-block">以1位起始序列,多个列以逗号进行分隔</span>
                         </div>
                     </div>
                     <div class="form-group">
                         <label for="exampleInputFile" class="col-sm-2 control-label">上传文件</label>
-                        <div class="col-sm-5">
+                        <div class="col-sm-6">
                             <input type="file" name="file" multiple="multiple" id="exampleInputFile"/>
                         </div>
                     </div>
@@ -77,11 +84,14 @@
                     </div>
                 </form>
             </div>
-            <div class="col-sm-8">
+            <div class="col-sm-9">
                 <h4>导入历史记录</h4>
                 <div class="form-inline">
                     <div class="btn-group">文件名：</div>
                     <input type="text" id="fileName" name="date" style="width: 130px"
+                           class="form-control" value="" />
+                    <div class="btn-group">表信息描述：</div>
+                    <input type="text" id="tableInfoDesc" name="tableInfoDesc" style="width: 200px"
                            class="form-control" value="" />
                     <div class="form-group">
                         &nbsp;选择日期
@@ -106,6 +116,33 @@
         </div>
     </div>
 
+    <div class="modal fade" id="tableDataDialog">
+        <div class="modal-dialog" style="width: 1000px;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"
+                            aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title">表数据</h4>
+                </div>
+                <div class="modal-body">
+                    <div style="width:100%;height:560px;" >
+                        <div class="table-responsive" id="" style="margin-top: 5px;">
+                            <table id="table_data">
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default"
+                            data-dismiss="modal">
+                        <i class="fa fa-times"></i> 关闭
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 </body>
 
@@ -114,10 +151,12 @@
     var curDate = new Date(),
         pre7Date = new Date(curDate.getTime() - 6 * 24 * 3600 * 1000);
         timeSeparator = '~';
+    var queryedTableName = null;
 
     $(function(){
         var $idcardColumnsForm = $('#idcardColumnsForm'),
-            $table = $('#his_table');
+            $table = $('#his_table'),
+            $tableDataTable = $('#table_data');
         $('#validateIDCard').click(function(){
             if(this.checked){
                 $idcardColumnsForm.show();
@@ -125,6 +164,11 @@
                 $idcardColumnsForm.hide();
             }
         });
+
+        $('#tableDataDialog').on('show.bs.modal',function(e){
+            console.log('查询' + queryedTableName + '的数据');
+            queryTableData(queryedTableName);
+        })
 
         $('#btnSearch').click(function(){
             $table.bootstrapTable('refresh');
@@ -181,6 +225,12 @@
                         align: 'center',
                         valign: 'middle',
                         width: '60'
+                    },{
+                        title: '表信息描述',
+                        field: 'tableDesc',
+                        align: 'center',
+                        valign: 'middle',
+                        width:'100',
                     },{
                         title: '文件名',
                         field: 'fileName',
@@ -245,6 +295,19 @@
                         align: 'center',
                         valign: 'middle',
                         width:'50'
+                    },{
+                        field: 'operate',
+                        title: '操作',
+                        align: 'center',
+                        valign: 'middle',
+                        width:'100',
+                        formatter: function(value, row, index) {
+                            return [
+                                '<a href="javascript:void(0);" onclick="continueImport(event,\''+row.tableName+'\',\''+row.tableDesc+'\')" class="btn btn-primary btn-xs" role="button" title="继续导入">导入</a>',
+                                '<a href="javascript:void(0);" data-tableName="'+row.tableName+'" onclick="showTableData(\''+row.tableName+'\')" class="btn btn-primary btn-xs" role="button" title="数据查看" style="margin-left: 2px;">查看</a>',
+                                '<div role="tip"><span style="color: #1E9FFF;font-size: 10px;"></span></div>'
+                            ].join('');
+                        }
                     }
                 ]
             }).on('sort.bs.table', function (name,order) {
@@ -268,7 +331,8 @@
             var postData = {
                 startTime: startDay,
                 endTime: endDay,
-                fileName: $.trim($('#fileName').val())
+                fileName: $.trim($('#fileName').val()),
+                tableDesc: $.trim($('#tableInfoDesc').val())
             };
 
             return postData;
@@ -289,8 +353,321 @@
             return date.Format(pattern);
         }
 
+        function getBootstrapTableColumns(columns){
+            var tableColumns = [];
+
+            tableColumns.push({
+                title: '序号',
+                field: 'state',
+                align: 'center',
+                valign: 'middle',
+                width:'30',
+                formatter: function operateFormatter(value, row, index) {
+                    var options = $tableDataTable.bootstrapTable('getOptions');
+                    var page = options.pageNumber,
+                        perRows = options.pageSize;
+                    return (page - 1) * perRows + index + 1;
+                }
+            });
+
+            $.each(columns,function(i,col){
+                tableColumns.push({
+                    title: col,
+                    field: col,
+                    align: 'center',
+                    valign: 'middle'
+                });
+            });
+            return tableColumns;
+        }
+
+        function initDataTable(tableName){
+            var inited = $tableDataTable.data('init');
+            if(inited){
+                $tableDataTable.bootstrapTable('destroy');
+            }
+            $.get('/table/columns/' + tableName,function(columns){
+                var tableColumns = getBootstrapTableColumns(columns);
+                $tableDataTable.bootstrapTable({
+                    height: 500,
+                    url: '/table/data/' + tableName,
+                    sidePagination: "server",
+                    dataType: "json",
+                    /*  silentSort: true, */
+                    cache: false,
+                    sortName: 'factory_id',
+                    pagination: true,
+                    pageSize: 10,
+                    pageList: [10,20,50],
+                    /* sortSide: 'client', */
+                    queryParams: function(params){
+                        var postData = getPostData();
+                        params = $.extend(params,postData);
+                        return params;
+                    },
+                    columns: tableColumns
+                }).on('sort.bs.table', function (name,order) {
+                    //console.log('sortinfo:' + name + ',' + order);
+                }).on('post-body.bs.table',function(){
+
+                }).on('load-success.bs.table',function(data){
+
+                });
+                $tableDataTable.data('init',true);
+            });
+        }
+
+        function queryTableData(tableName){
+            initDataTable(tableName);
+           /* var inited = $table.data('init');
+            if(inited){
+                refreshTable();
+            }else{
+                $table.bootstrapTable({
+                    height: 400,
+                    url: '/wiringDisgram/queryDeviceAlarmDetails',
+                    sidePagination: "server",
+                    dataType: "json",
+                    silentSort: false,
+                    pagination: true,
+                    cache: false,
+                    pageSize: 50,
+                    pageList: [50,100,200],
+                    sortSide: 'client',
+                    queryParams: function(params){
+                        params = $.extend(params,{
+                            deviceId: deviceId
+                        });
+                        return params;
+                    },
+                    rowStyle: function rowStyle(row, index) {
+                        var actType = row.actType;
+                        if((actType == 2 || actType == 3) && (row.status == 0 || row.status == null)){
+                            return {
+                                css: {"color": "#ff0000"}
+                            };
+                        }
+
+                        return {};
+                    },
+                    columns: [
+                        {
+                            title: '序号',
+                            field: 'state',
+                            align: 'center',
+                            valign: 'middle',
+                            cellStyle: function(value, row, index, field){
+                                var cls = '';
+                                if(row.aiAlarmValue != null){
+                                    cls = 'ai_alarm';
+                                }
+                                return {
+                                    classes: cls
+                                };
+                            },
+                            formatter: function operateFormatter(value, row, index) {
+                                var options = $table.bootstrapTable('getOptions');
+                                var page = options.pageNumber,
+                                    perRows = options.pageSize;
+                                return '<span>'+((page - 1) * perRows + index + 1)+'</span>' +
+                                    '<span class="badge" style=""></span>';
+                            }
+                        }, {
+                            title: '记录时间',
+                            field: 'recordTime',
+                            align: 'center',
+                            valign: 'middle',
+                            sortable: true,
+                            formatter: function operateFormatter(value, row, index) {
+                                var d = new Date();
+                                d.setTime(value);
+                                return d.Format("yyyy-MM-dd hh:mm:ss");
+                            }
+                        },{
+                            title: '测点',
+                            field: 'pointName',
+                            align: 'center',
+                            valign: 'middle',
+                            sortable: true,
+                            formatter: function operateFormatter(value, row, index) {
+                                return value || '-';
+                            }
+                        },
+                        {
+                            title: '事件名',
+                            field: 'eventType',
+                            align: 'center',
+                            valign: 'middle',
+                            sortable: true
+                        },{
+                            title: '发生时间',
+                            field: 'happendTime',
+                            align: 'center',
+                            valign: 'middle',
+                            sortable: true,
+                            formatter: function operateFormatter(value, row, index) {
+                                var d = new Date();
+                                d.setTime(value);
+                                return d.Format("yyyy-MM-dd hh:mm:ss.S");
+                            }
+                        },{
+                            title: '告警等级',
+                            field: 'level',
+                            align: 'center',
+                            valign: 'middle',
+                            sortable: true
+                        },{
+                            title: '状态',
+                            field: 'status',
+                            align: 'center',
+                            valign: 'middle',
+                            sortable: true,
+                            sorter : function(a,b,rowa,rowb){
+                                var actTypeA = rowa.actType,
+                                    actTypeB = rowb.actType;
+                                if(actTypeA == 0){
+                                    a = 3;
+                                }
+                                if(actTypeB == 0){
+                                    b = 3;
+                                }
+                                return a - b;
+                            },
+                            formatter: function operateFormatter(value, row, index) {
+                                if(row.actType == 0){
+                                    return '无需确认';
+                                }
+                                return value != 1 ? '未处理' : '已处理';
+                            }
+                        },{
+                            field: 'operate',
+                            title: '操作',
+                            align: 'center',
+                            valign: 'middle',
+                            formatter: function(value, row, index) {
+                                var defaultClass = 'disable';
+                                var clickInfo = '';
+                                if(row.status != 1 && (row.actType == 2 || row.actType == 3)){
+                                    defaultClass = 'like';
+                                    clickInfo = 'onclick="DeviceAlarm.confirmAlarm(\''
+                                        + row.id + '\',event)"';
+                                }
+                                return [
+                                    '<a class="'+defaultClass+'" href="javascript:void(0)" title="确认" '+clickInfo+'>',
+                                    '<i class="glyphicon glyphicon-ok"></i>',
+                                    '</a>  '
+                                ].join('');
+                            }
+                        }
+                    ]
+                }).on('click-row.bs.table', function (event, row) {
+                    if(row.aiAlarmValue != null){
+                        var valueColor = '#f00';
+                        var title = '越限发生';
+                        if(row.eventType == '越限恢复'){
+                            valueColor = '#0f0';
+                            title = '越限恢复';
+                        }else{
+                            if(/.*恢复$/.test(row.eventType)){
+                                valueColor = '#0f0';
+                            }
+
+                            if(/.*发生$/.test(row.eventType)){
+                                title = row.eventType;
+                            }else{
+                                title = row.eventType + '发生';
+                            }
+                        }
+
+                        var jqEvent = event.wrappedEvent;
+                        var dimension = row.dimension || '';
+                        $('#tip_title').text(title);
+                        if(row.pointName){
+                            $('#tip_point_name').parent().show();
+                            $('#tip_point_name').text(row.pointName);
+                        }else{
+                            $('#tip_point_name').parent().hide();
+                        }
+
+                        if(row.scope){
+                            $('#tip_level').parent().show();
+                            $('#tip_level').text(row.scope);
+                        }else{
+                            $('#tip_level').parent().hide();
+                        }
+
+                        if(row.deviceName){
+                            $('#tip_device_name').parent().show();
+                            $('#tip_device_name').text(row.deviceName);
+                        }else{
+                            $('#tip_device_name').parent().hide();
+                        }
+
+                        /!* 	if(row.devModelName){
+                           $('#tip_device_model').parent().show();
+                           $('#tip_device_model').text(row.devModelName);
+                       }else{
+                           $('#tip_device_model').parent().hide();
+                       } *!/
+
+                        var aiAlarmValue = row.aiAlarmValue,
+                            aiLimitValue = row.aiLimitValue;
+                        if(title.indexOf('效率') != -1){
+                            dimension = '%';
+                            if(aiAlarmValue){
+                                aiAlarmValue = aiAlarmValue * 100;
+                            }
+                            if(aiLimitValue){
+                                aiLimitValue = aiLimitValue * 100;
+                            }
+                        }
+
+
+                        $('#tip_alarm_value').text(toFixed(aiAlarmValue) + ' ' + dimension).css('color',valueColor);
+                        $('#tip_limit_value').text(toFixed(aiLimitValue) + ' ' + dimension);
+
+                        //设置越限比例
+                        var rate = (row.aiAlarmValue - row.aiLimitValue) / row.aiLimitValue * 100;
+                        var ratePrefix = rate > 0 ? '+' : '';
+                        $('#tip_over_rate').text(ratePrefix + rate.toFixed(2) + '%');
+
+                        //设置越限时间
+                        var d = new Date();
+                        d.setTime(row.happendTime);
+                        $('#tip_over_time').text(d.Format("yyyy-MM-dd hh:mm:ss.S"));
+
+                        $("#ai_alarm_tip").css({
+                            top : jqEvent.pageY,
+                            left : jqEvent.pageX
+                        }).show()
+                    }else{
+                        $("#ai_alarm_tip").hide();
+                    }
+                }).on('load-success.bs.table',function(){
+                    $table.data('init',true);
+                });
+            }*/
+        }
+
 
     });
+
+    function continueImport(e,tableName,tableDesc){
+        $('#table').val(tableName);
+        $('#tableDesc').val(tableDesc);
+
+        var $tip = $(e.target).nextAll('div[role="tip"]');
+        $tip.show().find('span').text('表信息已填充到左侧...');
+
+        window.setTimeout(function(){
+            $tip.hide();
+        },2000);
+    }
+
+    function showTableData(tableName){
+        queryedTableName = tableName;
+        $('#tableDataDialog').modal('show');
+    }
 
     // 对Date的扩展，将 Date 转化为指定格式的String
     // 月(M)、日(d)、小时(h)、分(m)、秒(s)、季度(q) 可以用 1-2 个占位符，

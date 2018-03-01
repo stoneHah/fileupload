@@ -12,9 +12,13 @@
 		<result column="file_key" property="fileKey" />
 		<result column="upload_key" property="uploadKey" />
 		<result column="update_time" property="updateTime" />
+		<result column="table_desc" property="tableInfo.tableDesc" />
+		<result column="table_title" property="tableInfo.tableTitle" />
 	</resultMap>
 
 	<select id="getFileImportInfos" resultMap="BaseResultMap">
+		select f.*,t.table_desc AS table_desc,t.table_title AS table_title FROM
+		(
 		SELECT * from file_import_info WHERE 1=1
 		<if test="fileName != null and fileName != ''">
 			and file_name like CONCAT('%',#{fileName},'%')
@@ -24,6 +28,10 @@
 		</if>
 		<if test="endTime != null">
 			and update_time &lt; #{endTime}
+		</if>
+		) f LEFT JOIN file_table_info t on f.table_name = t.table_name
+		<if test="tableDesc != null and tableDesc != ''">
+			WHERE t.table_desc like CONCAT('%',#{tableDesc},'%')
 		</if>
 		ORDER BY update_time DESC
 	</select>

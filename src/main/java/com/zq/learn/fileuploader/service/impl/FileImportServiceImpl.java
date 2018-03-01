@@ -1,5 +1,7 @@
 package com.zq.learn.fileuploader.service.impl;
 
+import com.baomidou.mybatisplus.mapper.Condition;
+import com.baomidou.mybatisplus.mapper.Wrapper;
 import com.baomidou.mybatisplus.plugins.Page;
 import com.zq.learn.fileuploader.common.enums.FileExtension;
 import com.zq.learn.fileuploader.common.enums.JobStatus;
@@ -7,8 +9,10 @@ import com.zq.learn.fileuploader.controller.dto.FileImportContext;
 import com.zq.learn.fileuploader.exception.FileImportException;
 import com.zq.learn.fileuploader.persistence.dao.FileImportExecutionMapper;
 import com.zq.learn.fileuploader.persistence.dao.FileImportInfoMapper;
+import com.zq.learn.fileuploader.persistence.dao.FileTableInfoMapper;
 import com.zq.learn.fileuploader.persistence.model.FileImportExecution;
 import com.zq.learn.fileuploader.persistence.model.FileImportInfo;
+import com.zq.learn.fileuploader.persistence.model.FileTableInfo;
 import com.zq.learn.fileuploader.service.IFileImportService;
 import com.zq.learn.fileuploader.service.model.FileImportInfoSupport;
 import com.zq.learn.fileuploader.support.batch.FilterDataManager;
@@ -66,6 +70,9 @@ public class FileImportServiceImpl implements IFileImportService {
 
     @Autowired
     private FilterDataManager filterDataManager;
+
+    @Autowired
+    private FileTableInfoMapper fileTableInfoMapper;
 
     @Autowired
     private JobLauncher jobLauncher;
@@ -263,13 +270,13 @@ public class FileImportServiceImpl implements IFileImportService {
     }
 
     @Override
-    public List<FileImportInfoSupport> getFileImportInfos(String fileName, Date startTime, Date endTime, Page page) {
+    public List<FileImportInfoSupport> getFileImportInfos(String fileName,String fileDesc, Date startTime, Date endTime, Page page) {
         List<FileImportInfoSupport> result = null;
 
         if (endTime != null) {
             endTime = new DateTime(endTime).plusDays(1).toDate();
         }
-        List<FileImportInfo> fileImportInfos = fileImportInfoMapper.getFileImportInfos(fileName,startTime,endTime,page);
+        List<FileImportInfo> fileImportInfos = fileImportInfoMapper.getFileImportInfos(fileName,fileDesc, startTime,endTime,page);
         if (!CollectionUtils.isEmpty(fileImportInfos)) {
             result = new ArrayList<>();
 
@@ -318,7 +325,60 @@ public class FileImportServiceImpl implements IFileImportService {
         support.setFileKey(fileImportInfo.getFileKey());
         support.setImportTime(fileImportInfo.getUpdateTime());
         support.setTableName(fileImportInfo.getTableName());
+
+        FileTableInfo tableInfo = fileImportInfo.getTableInfo();
+        if (tableInfo != null) {
+            support.setTableDesc(tableInfo.getTableDesc());
+        }
         return support;
+    }
+
+    @Override
+    public void saveFileTableInfo(FileTableInfo fileTableInfo) {
+        String tableName = fileTableInfo.getTableName();
+        if (!StringUtils.hasText(tableName)) {
+            return;
+        }
+
+        FileTableInfo tableInfo = fileTableInfoMapper.selectOne(new FileTableInfo(tableName));
+        if (tableInfo == null) {
+            try {
+                fileTableInfoMapper.insert(fileTableInfo);
+            } catch (Exception e) {
+                updateFileTableInfo(fileTableInfo);
+            }
+        }else{
+            updateFileTableInfo(fileTableInfo);
+        }
+    }
+
+    private void updateFileTableInfo(FileTableInfo fileTableInfo) {
+        if (fileTableInfo.getId() == null) {
+            FileTableInfo tableInfo = fileTableInfoMapper.selectOne(new FileTableInfo(fileTableInfo.getTableName()));
+            if (tableInfo == null) {
+                logger.error("文件表信息更新失败，不存在相关记录[tableName={}]",fileTableInfo.getTableName());
+                return;
+            }
+
+            fileTableInfo.setId(tableInfo.getId());
+            fileTableInfo.setVersion(tableInfo.getVersion());
+        }
+
+        int count = 0;
+        for(;;){
+
+            Integer updateCount = fileTableInfoMapper.updateById(fileTableInfo);
+            if (updateCount > 0) {
+                break;
+            }
+
+            if(count > 3){
+                logger.error("文件表信息更新失败[tableName={}]",fileTableInfo.getTableName());
+                return;
+            }
+
+            count++;
+        }
     }
 
     public static void main(String[] args) {

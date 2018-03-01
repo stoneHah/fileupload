@@ -50,6 +50,9 @@ public class FileImportInfo extends Model<FileImportInfo> {
 	@TableField("update_time")
 	private Date updateTime;
 
+	@TableField(exist=false)
+	private FileTableInfo tableInfo;
+
 
 	public Integer getId() {
 		return id;
@@ -113,6 +116,14 @@ public class FileImportInfo extends Model<FileImportInfo> {
 
 	public void setTableName(String tableName) {
 		this.tableName = tableName;
+	}
+
+	public FileTableInfo getTableInfo() {
+		return tableInfo;
+	}
+
+	public void setTableInfo(FileTableInfo tableInfo) {
+		this.tableInfo = tableInfo;
 	}
 
 	@Override

@@ -12,6 +12,7 @@ public class FileImportInfoSupport {
 
     private String fileName;
     private String tableName;
+    private String tableDesc;
     private String fileKey;
 
     private Date importTime;
@@ -38,6 +39,14 @@ public class FileImportInfoSupport {
 
     public void setTableName(String tableName) {
         this.tableName = tableName;
+    }
+
+    public String getTableDesc() {
+        return tableDesc;
+    }
+
+    public void setTableDesc(String tableDesc) {
+        this.tableDesc = tableDesc;
     }
 
     public String getFileKey() {

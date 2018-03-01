@@ -44,7 +44,7 @@ public class CustomerJdbcBatchItemWriter implements ItemWriter<ParsedItem>,Initi
 
     private static final Logger logger = LoggerFactory.getLogger(CustomerJdbcBatchItemWriter.class);
 
-    private static final String[] excludeColumns = new String[]{"id","file_key"};
+    public static final String[] excludeColumns = new String[]{"id","file_key"};
 
     private JdbcBatchItemWriter<ParsedItem> delegate;
 
