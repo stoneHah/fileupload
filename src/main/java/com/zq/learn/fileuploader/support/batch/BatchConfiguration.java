@@ -187,7 +187,7 @@ public class BatchConfiguration {
                 .writer(writer(null))
 //                .faultTolerant()
 //                .skipPolicy(new AlwaysSkipItemSkipPolicy())
-                .listener(listener)
+                .listener(stepCompletionNotificationListener())
                 .build();
     }
 
@@ -211,7 +211,7 @@ public class BatchConfiguration {
                 /*.faultTolerant()
                 .skip(SQLException.class)
                 .skipLimit(Integer.MAX_VALUE)*/
-                .listener(listener)
+                .listener(stepCompletionNotificationListener())
                 .build();
     }
 
