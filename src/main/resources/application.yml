@@ -11,6 +11,8 @@ spring:
   mvc:
     static-path-pattern: /static/**
   http:
+    encoding:
+      force: true
     converters:
       preferred-json-mapper: fastjson
     multipart:

@@ -153,7 +153,7 @@ public class FileUploadController {
      * @param pageSize
      * @return
      */
-    @GetMapping("/fileImportInfos")
+    @PostMapping("/fileImportInfos")
     @ResponseBody
     public ListResponse getFileImportInfos(@RequestParam(value = "fileName",required = false) String fileName,
                                            @RequestParam(value = "tableDesc",required = false) String tableDesc,

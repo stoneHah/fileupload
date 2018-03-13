@@ -386,7 +386,7 @@
             if(inited){
                 $tableDataTable.bootstrapTable('destroy');
             }
-            $.get('/table/columns/' + tableName,function(columns){
+            $.post('/table/columns/' + tableName,function(columns){
                 var tableColumns = getBootstrapTableColumns(columns);
                 $tableDataTable.bootstrapTable({
                     height: 500,

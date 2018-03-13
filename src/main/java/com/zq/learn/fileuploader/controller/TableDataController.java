@@ -23,12 +23,12 @@ public class TableDataController {
     private ITableDataService service;
 
 
-    @GetMapping(value = "/columns/{tableName}")
+    @PostMapping(value = "/columns/{tableName}")
     public List<String> getColumns(@PathVariable String tableName) {
         return service.getColumns(tableName);
     }
 
-    @GetMapping(value = "/data/{tableName}")
+    @PostMapping(value = "/data/{tableName}")
     public ListResponse getTableData(@PathVariable String tableName,
                                      @RequestParam(value = "offset",required = false,defaultValue = "0") Integer offset,
                                      @RequestParam(value = "limit",required = false,defaultValue = "10") Integer pageSize){
